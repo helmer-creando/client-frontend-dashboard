@@ -411,11 +411,21 @@ function cfd_render_dynamic_tags($tag, $post, $context = 'text')
     if ($tag === 'cfd_client_logo') {
         $settings = get_option('cfd_settings', array());
         $logo_id = isset($settings['client_logo_id']) ? absint($settings['client_logo_id']) : 0;
-        if ($logo_id) {
-            $url = wp_get_attachment_image_url($logo_id, 'full');
-            return $url ? esc_url($url) : '';
+
+        if (!$logo_id) {
+            return '';
         }
-        return '';
+
+        // If Bricks is specifically asking for an image (e.g., Image element),
+        // it needs the attachment ID, not the URL string, so it can build the
+        // responsive img tag itself using wp_get_attachment_image().
+        if ($context === 'image') {
+            return $logo_id;
+        }
+
+        // Otherwise (e.g., text, link, background-image), return the URL string.
+        $url = wp_get_attachment_image_url($logo_id, 'full');
+        return $url ? esc_url($url) : '';
     }
 
     // Sidebar nav dynamic tags — require the current loop object.
