@@ -1,0 +1,422 @@
+/* ═══════════════════════════════════════════════════════
+       MI ESPACIO — LOGIN PAGE STYLES
+       
+       ALL colors derive from ACSS variables via color-mix().
+       Change your ACSS --primary and the entire login page
+       adapts automatically.
+       
+       Key ACSS variables used:
+       --primary, --primary-light, --primary-dark
+       --accent (optional — falls back to --primary)
+       --text-dark, --white
+       --radius, --radius-l, --radius-s
+       --heading-font-family, --text-m, --text-s, --text-xs
+       ═══════════════════════════════════════════════════════ */
+
+    /* ── Mesh gradient background ──────────────────────── */
+
+    .cd-login-bg {
+        position: fixed !important;
+        inset: 0;
+        background: color-mix(in srgb, var(--primary, #8B7355) 8%, #F0EDE7);
+        z-index: 0;
+        overflow: hidden;
+    }
+
+    .cd-mesh-layer {
+        position: absolute;
+        inset: -50%;
+        width: 200%;
+        height: 200%;
+    }
+
+    .cd-mesh-layer--1 {
+        background: conic-gradient(
+            from 45deg at 30% 40%,
+            color-mix(in srgb, var(--primary, #8B7355) 40%, #E8DCCB) 0deg,
+            color-mix(in srgb, var(--primary, #8B7355) 60%, #D4B896) 60deg,
+            color-mix(in srgb, var(--primary, #8B7355) 8%, #F0EDE7) 120deg,
+            color-mix(in srgb, var(--accent, var(--primary, #8B7355)) 50%, #D4B896) 180deg,
+            color-mix(in srgb, var(--primary-light, #A69279) 35%, #E8DCCB) 240deg,
+            color-mix(in srgb, var(--primary, #8B7355) 55%, #D4B896) 300deg,
+            color-mix(in srgb, var(--primary, #8B7355) 40%, #E8DCCB) 360deg
+        );
+        opacity: 0.5;
+        animation: cd-mesh-r1 40s linear infinite;
+    }
+
+    .cd-mesh-layer--2 {
+        background: conic-gradient(
+            from 200deg at 65% 55%,
+            color-mix(in srgb, var(--primary, #8B7355) 8%, #F0EDE7) 0deg,
+            color-mix(in srgb, var(--primary-dark, #6B5540) 60%, #8B7355) 45deg,
+            color-mix(in srgb, var(--primary-light, #A69279) 40%, #E8DCCB) 90deg,
+            color-mix(in srgb, var(--primary, #8B7355) 55%, #D4B896) 150deg,
+            color-mix(in srgb, var(--primary, #8B7355) 15%, #E8DCCB) 210deg,
+            color-mix(in srgb, var(--accent, var(--primary, #8B7355)) 45%, #C4A882) 270deg,
+            color-mix(in srgb, var(--primary, #8B7355) 8%, #F0EDE7) 360deg
+        );
+        opacity: 0.45;
+        animation: cd-mesh-r2 35s linear infinite reverse;
+    }
+
+    .cd-mesh-layer--3 {
+        background: conic-gradient(
+            from 120deg at 50% 50%,
+            color-mix(in srgb, var(--primary-light, #A69279) 50%, #D4B896) 0deg,
+            color-mix(in srgb, var(--primary, #8B7355) 8%, #F0EDE7) 72deg,
+            color-mix(in srgb, var(--accent, var(--primary, #8B7355)) 50%, #C4A882) 144deg,
+            color-mix(in srgb, var(--primary-light, #A69279) 35%, #E8DCCB) 216deg,
+            color-mix(in srgb, var(--primary-dark, #6B5540) 55%, #8B7355) 288deg,
+            color-mix(in srgb, var(--primary-light, #A69279) 50%, #D4B896) 360deg
+        );
+        opacity: 0.35;
+        animation: cd-mesh-r3 50s linear infinite;
+    }
+
+    .cd-mesh-nodes {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse 45% 55% at 20% 25%,
+                color-mix(in srgb, var(--primary, #8B7355) 45%, transparent) 0%, transparent 70%),
+            radial-gradient(ellipse 50% 40% at 75% 70%,
+                color-mix(in srgb, var(--primary-dark, #6B5540) 35%, transparent) 0%, transparent 70%),
+            radial-gradient(ellipse 35% 45% at 55% 20%,
+                color-mix(in srgb, var(--primary-light, #A69279) 40%, transparent) 0%, transparent 65%),
+            radial-gradient(ellipse 40% 35% at 30% 75%,
+                color-mix(in srgb, var(--accent, var(--primary, #8B7355)) 30%, transparent) 0%, transparent 65%),
+            radial-gradient(ellipse 30% 30% at 80% 30%,
+                color-mix(in srgb, var(--primary-light, #A69279) 35%, transparent) 0%, transparent 60%);
+        animation: cd-nodes-drift 25s ease-in-out infinite alternate;
+    }
+
+    .cd-mesh-blend {
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(80px) saturate(1.3);
+        -webkit-backdrop-filter: blur(80px) saturate(1.3);
+    }
+
+    .cd-mesh-grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.3;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 256px;
+    }
+
+    @keyframes cd-mesh-r1 {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+    }
+    @keyframes cd-mesh-r2 {
+        from { transform: rotate(0deg) scale(1.05); }
+        to   { transform: rotate(360deg) scale(1.05); }
+    }
+    @keyframes cd-mesh-r3 {
+        from { transform: rotate(0deg) scale(0.95); }
+        to   { transform: rotate(360deg) scale(0.95); }
+    }
+    @keyframes cd-nodes-drift {
+        0%   { transform: translate(0, 0) scale(1); }
+        50%  { transform: translate(30px, -20px) scale(1.03); }
+        100% { transform: translate(-20px, 15px) scale(0.97); }
+    }
+    @keyframes cd-login-in {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes cd-shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+    }
+
+    /* ── .cd-glass — Reusable glassmorphism class ──────────
+       Add this class to ANY Bricks container to get the
+       frosted glass effect. Works on the login card and
+       could be reused anywhere on the site. ──────────── */
+
+    .cd-glass {
+        background: rgba(255, 255, 255, 0.3) !important;
+        backdrop-filter: blur(24px) saturate(1.4) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.45) !important;
+        border-radius: var(--radius-l, 28px) !important;
+        box-shadow:
+            0 8px 32px rgba(44, 40, 37, 0.1),
+            0 2px 8px rgba(44, 40, 37, 0.06),
+            inset 0 1px 1px rgba(255, 255, 255, 0.6),
+            inset 0 -1px 1px rgba(255, 255, 255, 0.12) !important;
+        animation: cd-login-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Light refraction */
+    .cd-glass::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-l, 28px);
+        background: linear-gradient(
+            135deg,
+            rgba(255,255,255,0.35) 0%,
+            rgba(255,255,255,0.08) 40%,
+            rgba(255,255,255,0) 60%,
+            rgba(255,255,255,0.04) 100%
+        );
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Top refraction line */
+    .cd-glass::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 10%;
+        right: 10%;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255,255,255,0.7) 20%,
+            color-mix(in srgb, var(--primary-light, #D4C4A8) 40%, transparent) 40%,
+            color-mix(in srgb, var(--primary, #A69279) 30%, transparent) 55%,
+            rgba(255,255,255,0.5) 75%,
+            transparent
+        );
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Card children sit above pseudo-elements */
+    .cd-glass > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ── Form overrides inside .cd-glass ──────────────── */
+
+    .cd-glass input[type="text"],
+    .cd-glass input[type="email"],
+    .cd-glass input[type="password"] {
+        width: 100% !important;
+        padding: 0.72rem 1rem !important;
+        border: 1px solid rgba(255,255,255,0.5) !important;
+        border-radius: var(--radius, 12px) !important;
+        font-size: var(--text-m, 0.9rem) !important;
+        font-family: inherit !important;
+        background: rgba(255,255,255,0.35) !important;
+        color: var(--text-dark, #2C2825) !important;
+        outline: none !important;
+        transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.03) !important;
+        box-sizing: border-box !important;
+    }
+
+    .cd-glass input::placeholder {
+        color: #A09890 !important;
+    }
+
+    .cd-glass input:focus {
+        border-color: color-mix(in srgb, var(--primary, #A69279) 50%, transparent) !important;
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--primary, #A69279) 12%, transparent),
+            inset 0 1px 2px rgba(0,0,0,0.02) !important;
+        background: rgba(255,255,255,0.55) !important;
+    }
+
+    .cd-glass #loginform {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .cd-glass #loginform p {
+        margin-bottom: 1rem !important;
+    }
+
+    .cd-glass #loginform label {
+        display: block !important;
+        font-size: var(--text-xs, 0.78rem) !important;
+        font-weight: 600 !important;
+        color: var(--text-dark, #4A4340) !important;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .cd-glass .login-remember {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .cd-glass .login-remember label {
+        font-weight: 400 !important;
+        color: #6B6560 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        cursor: pointer !important;
+    }
+
+    .cd-glass .login-remember input[type="checkbox"] {
+        width: 16px !important;
+        height: 16px !important;
+        accent-color: var(--primary, #8B7355) !important;
+        cursor: pointer !important;
+    }
+
+    .cd-glass #wp-submit {
+        width: 100% !important;
+        padding: 0.82rem !important;
+        background: linear-gradient(135deg,
+            var(--primary-semi-dark, #6B5540),
+            var(--primary-dark, #8B7355)
+        ) !important;
+        color: var(--white, #FAF8F4) !important;
+        text-align: center;
+        border: none !important;
+        border-radius: var(--radius, 14px) !important;
+        font-size: var(--text-m, 0.92rem) !important;
+        font-family: inherit !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    }
+
+    .cd-glass #wp-submit:hover {
+        transform: translateY(-2px) !important;
+        box-shadow:
+            0 8px 28px color-mix(in srgb, var(--primary, #6B5540) 30%, transparent),
+            0 0 50px color-mix(in srgb, var(--primary, #6B5540) 10%, transparent) !important;
+    }
+
+    .cd-glass #wp-submit:active {
+        transform: translateY(0) !important;
+    }
+
+    /* ── Error ─────────────────────────────────────────── */
+    .cd-login-error {
+        background: rgba(254,242,242,0.75);
+        backdrop-filter: blur(8px);
+        color: #991B1B;
+        text-align: center;
+        font-size: var(--text-s, 0.82rem);
+        padding: 0.65rem 0.9rem;
+        border-radius: var(--radius-s, 10px);
+        border: 1px solid rgba(153,27,27,0.08);
+        animation: cd-shake 0.4s ease;
+    }
+
+    /* ── Success ───────────────────────────────────────── */
+    .cd-login-success {
+        background: rgba(237,245,232,0.75);
+        backdrop-filter: blur(8px);
+        color: #3D6B2E;
+        text-align:center;
+        font-size: var(--text-s, 0.82rem);
+        padding: 0.65rem 0.9rem;
+        border-radius: var(--radius-s, 10px);
+        border: 1px solid rgba(61,107,46,0.1);
+        margin-bottom: 1rem;
+    }
+
+    /* ── Back link ─────────────────────────────────────── */
+    .cd-login-back {
+        text-align: center;
+        margin-top: 1.2rem;
+    }
+
+    .cd-login-back a {
+        font-size: var(--text-xs, 0.78rem);
+        color: color-mix(in srgb, var(--primary, #8B7355) 80%, #000);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .cd-login-back a:hover {
+        color: var(--text-dark, #2C2825);
+    }
+
+    /* ── Lost password & reset forms ──────────────────── */
+    .cd-lost-password-form,
+    .cd-reset-password-form {
+        margin: 0;
+        padding: 0;
+    }
+
+    .cd-lost-password-form p,
+    .cd-reset-password-form p {
+        margin-bottom: 1rem;
+    }
+
+    .cd-lost-password-form label,
+    .cd-reset-password-form label {
+        display: block;
+        font-size: var(--text-xs, 0.78rem);
+        font-weight: 400;
+        color: var(--text-dark, #4A4340);
+        margin-bottom: 0.35rem;
+    }
+
+    .cd-lost-password-form input[type="text"],
+    .cd-lost-password-form input[type="email"],
+    .cd-reset-password-form input[type="password"] {
+        width: 100%;
+        padding: 0.72rem 1rem;
+        border: 1px solid rgba(255,255,255,0.5);
+        border-radius: var(--radius, 12px);
+        font-size: var(--text-m, 0.9rem);
+        font-family: inherit;
+        background: rgba(255,255,255,0.35);
+        color: var(--text-dark, #2C2825);
+        text-align: center;
+        outline: none;
+        transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+        box-sizing: border-box;
+    }
+
+    .cd-lost-password-form input:focus,
+    .cd-reset-password-form input:focus {
+        border-color: color-mix(in srgb, var(--primary, #A69279) 50%, transparent);
+        box-shadow:
+            0 0 0 3px color-mix(in srgb, var(--primary, #A69279) 12%, transparent),
+            inset 0 1px 2px rgba(0,0,0,0.02);
+        background: rgba(255,255,255,0.55);
+    }
+
+    .cd-lost-password-form #wp-submit,
+    .cd-reset-password-form #wp-submit {
+        width: 100%;
+        padding: 0.82rem;
+        background: linear-gradient(135deg,
+            var(--primary-semi-dark, #6B5540),
+            var(--primary-dark, #8B7355)
+        );
+        color: var(--white, #FAF8F4);
+        border: none;
+        border-radius: var(--radius, 14px);
+        font-size: var(--text-m, 0.92rem);
+        font-family: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .cd-lost-password-form #wp-submit:hover,
+    .cd-reset-password-form #wp-submit:hover {
+        transform: translateY(-2px);
+        box-shadow:
+            0 8px 28px color-mix(in srgb, var(--primary, #6B5540) 30%, transparent),
+            0 0 50px color-mix(in srgb, var(--primary, #6B5540) 10%, transparent);
+    }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 480px) {
+        .cd-glass {
+            border-radius: var(--radius, 22px) !important;
+        }
+    }
