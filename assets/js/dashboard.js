@@ -101,10 +101,9 @@ document.addEventListener('click', function (e) {
 
 /* ── Success modal ─────────────────────────────────────
    Converts inline .cd-success messages into a centered
-   modal with a backdrop overlay. The user must click
-   "Aceptar" or ✕ to dismiss. Also cleans the URL params
-   (?updated=true, ?trashed=true) so a refresh doesn't
-   re-trigger the modal. */
+   modal with a backdrop overlay. User can dismiss via
+   "Aceptar" button, ✕, clicking outside, or it auto-
+   dismisses after 5 seconds. */
 (function () {
     document.addEventListener('DOMContentLoaded', function () {
         var successEls = document.querySelectorAll('.cd-success');
@@ -117,17 +116,37 @@ document.addEventListener('click', function (e) {
         var modal = document.createElement('div');
         modal.className = 'cd-modal';
 
-        // Icon
+        // SVG checkmark icon (no emoji)
         var icon = document.createElement('div');
         icon.className = 'cd-modal__icon';
-        icon.textContent = '✅';
+        icon.innerHTML = '<svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="28" cy="28" r="28" fill="#2D5A3D"/><path d="M17 28.5L24.5 36L39 21" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         modal.appendChild(icon);
 
         // Collect all success messages
         successEls.forEach(function (el) {
             var msg = document.createElement('div');
             msg.className = 'cd-modal__message';
-            msg.innerHTML = el.innerHTML;
+
+            // Extract text and link separately (skip emoji prefixes)
+            var textSpan = el.querySelector('span');
+            var link = el.querySelector('a');
+
+            if (textSpan) {
+                var p = document.createElement('p');
+                p.className = 'cd-modal__text';
+                // Strip leading emoji characters from the span text
+                p.textContent = textSpan.textContent.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}✅🗑️\s]+/u, '').trim();
+                msg.appendChild(p);
+            }
+            if (link) {
+                var a = document.createElement('a');
+                a.href = link.href;
+                a.target = '_blank';
+                a.className = 'cd-modal__link';
+                a.textContent = link.textContent;
+                msg.appendChild(a);
+            }
+
             modal.appendChild(msg);
             el.remove();
         });
@@ -155,12 +174,19 @@ document.addEventListener('click', function (e) {
             overlay.classList.add('cd-modal-overlay--visible');
         });
 
+        // Auto-dismiss after 5 seconds
+        var autoTimer = setTimeout(function () {
+            dismiss();
+        }, 5000);
+
         // Close on overlay click (outside modal)
         overlay.addEventListener('click', function (e) {
             if (e.target === overlay) dismiss();
         });
 
         function dismiss() {
+            clearTimeout(autoTimer);
+            if (overlay.classList.contains('cd-modal-overlay--dismissed')) return;
             overlay.classList.remove('cd-modal-overlay--visible');
             overlay.classList.add('cd-modal-overlay--dismissed');
             setTimeout(function () {
@@ -172,7 +198,7 @@ document.addEventListener('click', function (e) {
         if (window.history && window.history.replaceState) {
             var url = new URL(window.location.href);
             var changed = false;
-            ['updated', 'trashed'].forEach(function (param) {
+            ['updated', 'trashed', 'created'].forEach(function (param) {
                 if (url.searchParams.has(param)) {
                     url.searchParams.delete(param);
                     changed = true;

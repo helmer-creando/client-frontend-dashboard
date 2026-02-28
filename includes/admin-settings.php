@@ -83,6 +83,11 @@ function cfd_sanitize_settings($input): array
         $clean['manageable_cpts'] = array();
     }
 
+    // Client logo — attachment ID.
+    if (isset($input['client_logo_id'])) {
+        $clean['client_logo_id'] = absint($input['client_logo_id']);
+    }
+
     // After saving, re-sync role capabilities so the site_editor
     // role gets caps for the newly selected CPTs.
     // We do this by bumping the caps version.
@@ -102,6 +107,9 @@ function cfd_render_settings_page(): void
     if (!current_user_can('manage_options')) {
         return;
     }
+
+    // Enqueue the WP Media uploader.
+    wp_enqueue_media();
 
     $config = cfd_get_config();
     $db_settings = get_option('cfd_settings', array());
@@ -185,6 +193,81 @@ function cfd_render_settings_page(): void
                             Where <code>site_editor</code> users land after login.
                             Should match the dashboard slug. Example: <code>/mi-espacio/</code>
                         </p>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ── Client Logo ───────────────────────────── -->
+            <h2>Client Logo</h2>
+            <p>
+                Upload the client&rsquo;s logo. It will be available as a Bricks dynamic tag
+                <code>{cfd_client_logo}</code> for use in login forms and navigation.
+            </p>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">Logo</th>
+                    <td>
+                        <?php
+    $logo_id = isset($db_settings['client_logo_id']) ? absint($db_settings['client_logo_id']) : 0;
+    $logo_url = $logo_id ? wp_get_attachment_image_url($logo_id, 'medium') : '';
+?>
+                        <div id="cfd-logo-preview" style="margin-bottom: 10px;">
+                            <?php if ($logo_url): ?>
+                                <img src="<?php echo esc_url($logo_url); ?>" style="max-width: 200px; height: auto; border-radius: 6px;" />
+                            <?php
+    endif; ?>
+                        </div>
+                        <input
+                            type="hidden"
+                            id="cfd_client_logo_id"
+                            name="cfd_settings[client_logo_id]"
+                            value="<?php echo esc_attr($logo_id); ?>"
+                        />
+                        <button type="button" class="button" id="cfd-logo-upload">
+                            <?php echo $logo_id ? 'Change Logo' : 'Upload Logo'; ?>
+                        </button>
+                        <?php if ($logo_id): ?>
+                        <button type="button" class="button" id="cfd-logo-remove" style="margin-left: 6px; color: #a00;">
+                            Remove
+                        </button>
+                        <?php
+    endif; ?>
+                        <script>
+                        jQuery(function($) {
+                            var frame;
+                            $('#cfd-logo-upload').on('click', function(e) {
+                                e.preventDefault();
+                                if (frame) { frame.open(); return; }
+                                frame = wp.media({
+                                    title: 'Select Client Logo',
+                                    button: { text: 'Use this logo' },
+                                    multiple: false,
+                                    library: { type: 'image' }
+                                });
+                                frame.on('select', function() {
+                                    var attachment = frame.state().get('selection').first().toJSON();
+                                    $('#cfd_client_logo_id').val(attachment.id);
+                                    $('#cfd-logo-preview').html('<img src="' + attachment.url + '" style="max-width: 200px; height: auto; border-radius: 6px;" />');
+                                    $('#cfd-logo-upload').text('Change Logo');
+                                    if (!$('#cfd-logo-remove').length) {
+                                        $('<button type="button" class="button" id="cfd-logo-remove" style="margin-left: 6px; color: #a00;">Remove</button>').insertAfter('#cfd-logo-upload');
+                                        bindRemove();
+                                    }
+                                });
+                                frame.open();
+                            });
+                            function bindRemove() {
+                                $(document).on('click', '#cfd-logo-remove', function(e) {
+                                    e.preventDefault();
+                                    $('#cfd_client_logo_id').val('0');
+                                    $('#cfd-logo-preview').html('');
+                                    $('#cfd-logo-upload').text('Upload Logo');
+                                    $(this).remove();
+                                });
+                            }
+                            bindRemove();
+                        });
+                        </script>
                     </td>
                 </tr>
             </table>
@@ -317,6 +400,19 @@ function cfd_render_settings_page(): void
                 <tr>
                     <td><code>[cfd_sidebar_nav]</code></td>
                     <td>Dynamic sidebar nav with Dashicons (auto from config)</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="background: #f0f0f1; font-weight: 600; padding: 8px 10px;">
+                        Bricks Dynamic Tags (use via ⚡ icon)
+                    </td>
+                </tr>
+                <tr>
+                    <td><code>{cfd_client_logo}</code></td>
+                    <td>Client logo URL (uploaded in settings above)</td>
+                </tr>
+                <tr>
+                    <td><code>{cfd_logout_url}</code></td>
+                    <td>Logout URL for links/buttons</td>
                 </tr>
             </tbody>
         </table>

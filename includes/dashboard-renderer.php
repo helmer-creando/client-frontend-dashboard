@@ -601,7 +601,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
         echo '<div class="cd-success">';
-        echo '  <span>✅ ¡Cambios guardados!</span>';
+        echo '  <span>Cambios guardados</span>';
         echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link" style="margin-left: 0.5rem;">Ver página ↗</a>';
         echo '</div>';
     }
@@ -643,7 +643,10 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link">← Volver al inicio</a>';
 
     if (isset($_GET['trashed']) && $_GET['trashed'] === 'true') {
-        echo '<div class="cd-success"><span>🗑️ Entrada eliminada correctamente.</span></div>';
+        echo '<div class="cd-success"><span>Entrada eliminada correctamente</span></div>';
+    }
+    if (isset($_GET['created']) && $_GET['created'] === 'true') {
+        echo '<div class="cd-success"><span>Entrada creada con éxito</span></div>';
     }
 
     echo '<div class="cd-cpt-list">';
@@ -884,7 +887,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
         echo '<div class="cd-success">';
-        echo '  <span>✅ ¡Cambios guardados!</span>';
+        echo '  <span>Cambios guardados</span>';
         echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link" style="margin-left: 0.5rem;">Ver entrada ↗</a>';
         echo '</div>';
     }

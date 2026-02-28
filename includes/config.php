@@ -390,6 +390,11 @@ function cfd_register_dynamic_tags($tags)
         'label' => 'CFD Nav: Active CSS class',
         'group' => 'Client Dashboard',
     );
+    $tags[] = array(
+        'name' => '{cfd_client_logo}',
+        'label' => 'CFD: Client Logo URL',
+        'group' => 'Client Dashboard',
+    );
     return $tags;
 }
 
@@ -401,6 +406,16 @@ function cfd_render_dynamic_tags($tag, $post, $context = 'text')
         return function_exists('cfd_get_logout_url')
             ? esc_url(cfd_get_logout_url())
             : '';
+    }
+
+    if ($tag === 'cfd_client_logo') {
+        $settings = get_option('cfd_settings', array());
+        $logo_id = isset($settings['client_logo_id']) ? absint($settings['client_logo_id']) : 0;
+        if ($logo_id) {
+            $url = wp_get_attachment_image_url($logo_id, 'full');
+            return $url ? esc_url($url) : '';
+        }
+        return '';
     }
 
     // Sidebar nav dynamic tags — require the current loop object.
@@ -573,20 +588,7 @@ function cfd_build_nav_items(): array
     $item->is_active = ($active_slug === 'home');
     $items[] = $item;
 
-    // 2. Páginas (only if editable pages exist).
-    $pages = cfd_get_editable_pages($config);
-    if (!empty($pages)) {
-        $item = new \stdClass();
-        $item->cfd_nav_item = true;
-        $item->slug = 'pages';
-        $item->label = 'Páginas';
-        $item->url = $dashboard_url;
-        $item->icon = 'dashicons dashicons-admin-page';
-        $item->is_active = ($active_slug === 'pages');
-        $items[] = $item;
-    }
-
-    // 3. Manageable CPTs.
+    // 2. Manageable CPTs.
     if (!empty($config['manageable_cpts'])) {
         foreach ($config['manageable_cpts'] as $cpt_slug) {
             $cpt_obj = get_post_type_object($cpt_slug);

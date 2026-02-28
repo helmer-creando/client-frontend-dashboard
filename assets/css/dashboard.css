@@ -1369,31 +1369,43 @@
 }
 
 .cd-modal__icon {
-    font-size: 2.5rem;
-    margin-bottom: var(--space-s, 0.75rem);
+    margin-bottom: var(--space-m, 1rem);
     line-height: 1;
 }
 
+.cd-modal__icon svg {
+    width: 56px;
+    height: 56px;
+}
+
 .cd-modal__message {
-    font-size: var(--text-m, 1rem);
+    margin-bottom: var(--space-xs, 0.4rem);
+}
+
+.cd-modal__text {
+    font-size: var(--text-m, 1.05rem);
     color: var(--text-dark, #2C2825);
     font-weight: 600;
-    margin-bottom: var(--space-xs, 0.4rem);
     line-height: 1.4;
+    margin: 0;
 }
 
-.cd-modal__message a {
+.cd-modal__link {
     display: inline-block;
-    margin-top: var(--space-xs, 0.4rem);
-    color: var(--primary-dark, #3D6B2E);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    margin-top: var(--space-s, 0.5rem);
+    color: var(--accent, #E67E22);
+    text-decoration: none;
     font-weight: 500;
     font-size: var(--text-s, 0.85rem);
+    padding: var(--space-xs, 0.35rem) var(--space-s, 0.75rem);
+    border: 1px solid var(--accent, #E67E22);
+    border-radius: var(--radius-s, 6px);
+    transition: background 0.2s, color 0.2s;
 }
 
-.cd-modal__message a:hover {
-    color: var(--primary, #2D5A3D);
+.cd-modal__link:hover {
+    background: var(--accent, #E67E22);
+    color: #fff;
 }
 
 .cd-modal__accept {
@@ -1437,4 +1449,23 @@
 .cd-modal__close:hover {
     color: var(--text-dark, #2C2825);
     background: rgba(0, 0, 0, 0.05);
+}
+
+/* ── Modal mobile fix (force column layout) ── */
+@media (max-width: 600px) {
+    .cd-modal {
+        padding: var(--space-l, 1.75rem) var(--space-m, 1.25rem);
+        max-width: 92%;
+    }
+
+    .cd-modal__message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* ── Sidebar safe-area for iOS browser chrome ── */
+.cfd-sidebar-nav__list {
+    padding-bottom: env(safe-area-inset-bottom, 1.5rem);
 }
