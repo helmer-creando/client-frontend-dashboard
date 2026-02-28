@@ -99,63 +99,73 @@ document.addEventListener('click', function (e) {
     }
 })();
 
-/* ── Toast notifications ───────────────────────────────
-   Converts inline .cd-success messages into animated
-   toasts that auto-dismiss after 5 seconds. Also cleans
-   the URL params (?updated=true, ?trashed=true) so a
-   refresh doesn't re-trigger the toast. */
+/* ── Success modal ─────────────────────────────────────
+   Converts inline .cd-success messages into a centered
+   modal with a backdrop overlay. The user must click
+   "Aceptar" or ✕ to dismiss. Also cleans the URL params
+   (?updated=true, ?trashed=true) so a refresh doesn't
+   re-trigger the modal. */
 (function () {
     document.addEventListener('DOMContentLoaded', function () {
         var successEls = document.querySelectorAll('.cd-success');
         if (!successEls.length) return;
 
-        // Create toast container if needed
-        var container = document.getElementById('cd-toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'cd-toast-container';
-            document.body.appendChild(container);
-        }
+        // Build overlay + modal
+        var overlay = document.createElement('div');
+        overlay.className = 'cd-modal-overlay';
 
+        var modal = document.createElement('div');
+        modal.className = 'cd-modal';
+
+        // Icon
+        var icon = document.createElement('div');
+        icon.className = 'cd-modal__icon';
+        icon.textContent = '✅';
+        modal.appendChild(icon);
+
+        // Collect all success messages
         successEls.forEach(function (el) {
-            // Clone content into a toast
-            var toast = document.createElement('div');
-            toast.className = 'cd-toast';
-            toast.innerHTML = el.innerHTML;
-
-            // Add dismiss button
-            var closeBtn = document.createElement('button');
-            closeBtn.className = 'cd-toast__close';
-            closeBtn.textContent = '✕';
-            closeBtn.setAttribute('aria-label', 'Cerrar');
-            closeBtn.addEventListener('click', function () {
-                dismissToast(toast);
-            });
-            toast.appendChild(closeBtn);
-
-            container.appendChild(toast);
-
-            // Trigger slide-in animation
-            requestAnimationFrame(function () {
-                toast.classList.add('cd-toast--visible');
-            });
-
-            // Auto-dismiss after 5 seconds
-            setTimeout(function () {
-                dismissToast(toast);
-            }, 5000);
-
-            // Remove the original inline message
+            var msg = document.createElement('div');
+            msg.className = 'cd-modal__message';
+            msg.innerHTML = el.innerHTML;
+            modal.appendChild(msg);
             el.remove();
         });
 
-        function dismissToast(toast) {
-            if (toast.classList.contains('cd-toast--dismissed')) return;
-            toast.classList.add('cd-toast--dismissed');
-            toast.classList.remove('cd-toast--visible');
+        // Accept button
+        var acceptBtn = document.createElement('button');
+        acceptBtn.className = 'cd-modal__accept';
+        acceptBtn.textContent = 'Aceptar';
+        acceptBtn.addEventListener('click', dismiss);
+        modal.appendChild(acceptBtn);
+
+        // Close button (top-right ✕)
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'cd-modal__close';
+        closeBtn.textContent = '✕';
+        closeBtn.setAttribute('aria-label', 'Cerrar');
+        closeBtn.addEventListener('click', dismiss);
+        modal.appendChild(closeBtn);
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Animate in
+        requestAnimationFrame(function () {
+            overlay.classList.add('cd-modal-overlay--visible');
+        });
+
+        // Close on overlay click (outside modal)
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) dismiss();
+        });
+
+        function dismiss() {
+            overlay.classList.remove('cd-modal-overlay--visible');
+            overlay.classList.add('cd-modal-overlay--dismissed');
             setTimeout(function () {
-                toast.remove();
-            }, 400);
+                overlay.remove();
+            }, 350);
         }
 
         // Clean URL params so refresh doesn't re-trigger
