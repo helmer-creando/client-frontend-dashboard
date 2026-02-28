@@ -492,6 +492,37 @@ function cfd_render_dynamic_content($content, $post = null, $context = 'text')
     return $content;
 }
 
+// ═══════════════════════════════════════════════════════════
+// FALLBACK SHORTCODE: [cfd_client_logo]
+// For when Bricks Image element refuses to parse dynamic tags.
+// Allows setting max_width or class.
+// Example: [cfd_client_logo class="my-logo" max_width="250px"]
+// ═══════════════════════════════════════════════════════════
+
+add_shortcode('cfd_client_logo', 'cfd_client_logo_shortcode');
+
+function cfd_client_logo_shortcode($atts)
+{
+    $settings = get_option('cfd_settings', array());
+    $logo_id = isset($settings['client_logo_id']) ? absint($settings['client_logo_id']) : 0;
+
+    if (!$logo_id) {
+        return '';
+    }
+
+    $atts = shortcode_atts(array(
+        'class' => 'cfd-client-logo',
+        'max_width' => '100%',
+    ), $atts, 'cfd_client_logo');
+
+    $html = wp_get_attachment_image($logo_id, 'full', false, array(
+        'class' => esc_attr($atts['class']),
+        'style' => 'height: auto; width: auto; max-width: ' . esc_attr($atts['max_width']) . '; object-fit: contain;',
+    ));
+
+    return $html;
+}
+
 /**
  * Helper: returns the current Bricks loop object if it's a nav item.
  *

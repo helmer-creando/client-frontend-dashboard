@@ -402,6 +402,14 @@ function cfd_render_settings_page(): void
                     <td>Dynamic sidebar nav with Dashicons (auto from config)</td>
                 </tr>
                 <tr>
+                    <td><code>[cfd_client_logo]</code></td>
+                    <td>Muestra el logo del cliente subido arriba. Ideal como reemplazo si las etiquetas dinámicas de Bricks fallan en el elemento Imagen. Acepta los parámetros <code>class</code> y <code>max_width</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>[cfd_logout_url]</code></td>
+                    <td>Devuelve la URL en texto plano para el enlace de cierre de sesión. Útil para menús o elementos personalizados donde no se cuenta con etiquetas dinámicas.</td>
+                </tr>
+                <tr>
                     <td colspan="2" style="background: #f0f0f1; font-weight: 600; padding: 8px 10px;">
                         Bricks Dynamic Tags (use via ⚡ icon)
                     </td>
