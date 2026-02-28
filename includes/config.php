@@ -444,6 +444,44 @@ function cfd_render_dynamic_tags($tag, $post, $context = 'text')
     return '';
 }
 
+// ─────────────────────────────────────────────────────────
+// render_content + render_data: needed for Bricks to find
+// and replace our tags in content strings (Image elements,
+// background images, etc.) — render_tag alone only fires
+// when Bricks already identified the tag.
+// ─────────────────────────────────────────────────────────
+
+add_filter('bricks/dynamic_data/render_content', 'cfd_render_dynamic_content', 10, 3);
+add_filter('bricks/frontend/render_data', 'cfd_render_dynamic_content', 10, 2);
+
+function cfd_render_dynamic_content($content, $post = null, $context = 'text')
+{
+    // Only process if our tags exist in the content string.
+    if (strpos($content, '{cfd_') === false) {
+        return $content;
+    }
+
+    // {cfd_logout_url}
+    if (strpos($content, '{cfd_logout_url}') !== false) {
+        $logout_url = function_exists('cfd_get_logout_url') ? esc_url(cfd_get_logout_url()) : '';
+        $content = str_replace('{cfd_logout_url}', $logout_url, $content);
+    }
+
+    // {cfd_client_logo}
+    if (strpos($content, '{cfd_client_logo}') !== false) {
+        $logo_url = '';
+        $settings = get_option('cfd_settings', array());
+        $logo_id = isset($settings['client_logo_id']) ? absint($settings['client_logo_id']) : 0;
+        if ($logo_id) {
+            $url = wp_get_attachment_image_url($logo_id, 'full');
+            $logo_url = $url ? esc_url($url) : '';
+        }
+        $content = str_replace('{cfd_client_logo}', $logo_url, $content);
+    }
+
+    return $content;
+}
+
 /**
  * Helper: returns the current Bricks loop object if it's a nav item.
  *
