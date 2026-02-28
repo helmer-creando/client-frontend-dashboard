@@ -314,6 +314,10 @@ function cfd_render_settings_page(): void
                     <td><code>[cfd_view_router]</code></td>
                     <td>Renders edit/manage/create views (non-home views)</td>
                 </tr>
+                <tr>
+                    <td><code>[cfd_sidebar_nav]</code></td>
+                    <td>Dynamic sidebar nav with Dashicons (auto from config)</td>
+                </tr>
             </tbody>
         </table>
     </div>

@@ -197,6 +197,146 @@ function cfd_render_dashboard(): string
 // ─────────────────────────────────────────────────────────
 
 /**
+ * [cfd_sidebar_nav] — Dynamic sidebar navigation.
+ *
+ * Automatically builds the sidebar nav from the plugin config:
+ * 1. Inicio (home link)
+ * 2. Páginas (if editable pages exist)
+ * 3. Each manageable CPT (from settings)
+ *
+ * Each item uses the Dashicon registered with the CPT in WordPress
+ * (or ACF). Pages use `dashicons-admin-page`, Inicio uses
+ * `dashicons-dashboard`. The current view gets an `is-active` class.
+ *
+ * Usage in Bricks: Add a Shortcode element with [cfd_sidebar_nav]
+ * inside the sidebar div.
+ */
+add_shortcode('cfd_sidebar_nav', 'cfd_render_sidebar_nav');
+
+function cfd_render_sidebar_nav(): string
+{
+    if (!is_user_logged_in()) {
+        return '';
+    }
+
+    // Ensure Dashicons are available on the frontend.
+    wp_enqueue_style('dashicons');
+
+    $config = cfd_get_config();
+    $dashboard_url = cfd_get_dashboard_url();
+    $view = cfd_get_dashboard_view();
+
+    // Determine which nav item is "active".
+    $active_slug = '';
+    if ($view === 'home' || $view === '') {
+        $active_slug = 'home';
+    }
+    elseif ($view === 'edit_page') {
+        $active_slug = 'pages';
+    }
+    elseif ($view === 'manage' && isset($_GET['manage'])) {
+        $active_slug = sanitize_key($_GET['manage']);
+    }
+    elseif ($view === 'edit_cpt' && isset($_GET['edit'])) {
+        $active_slug = sanitize_key($_GET['edit']);
+    }
+    elseif ($view === 'create' && isset($_GET['create'])) {
+        $active_slug = sanitize_key($_GET['create']);
+    }
+
+    ob_start();
+
+    echo '<nav class="cfd-sidebar-nav" aria-label="Dashboard navigation">';
+    echo '<ul class="cfd-sidebar-nav__list">';
+
+    // ── 1. Inicio ──
+    $active_class = ($active_slug === 'home') ? ' is-active' : '';
+    echo '<li class="cfd-sidebar-nav__item' . $active_class . '">';
+    echo '  <a href="' . esc_url($dashboard_url) . '" class="cfd-sidebar-nav__link">';
+    echo '    <span class="dashicons dashicons-dashboard cfd-sidebar-nav__icon"></span>';
+    echo '    <span class="cfd-sidebar-nav__label">Inicio</span>';
+    echo '  </a>';
+    echo '</li>';
+
+    // ── 2. Páginas (only if there are editable pages) ──
+    $pages = cfd_get_editable_pages($config);
+    if (!empty($pages)) {
+        $active_class = ($active_slug === 'pages') ? ' is-active' : '';
+        echo '<li class="cfd-sidebar-nav__item' . $active_class . '">';
+        echo '  <a href="' . esc_url($dashboard_url) . '" class="cfd-sidebar-nav__link">';
+        echo '    <span class="dashicons dashicons-admin-page cfd-sidebar-nav__icon"></span>';
+        echo '    <span class="cfd-sidebar-nav__label">Páginas</span>';
+        echo '  </a>';
+        echo '</li>';
+    }
+
+    // ── 3. Manageable CPTs ──
+    if (!empty($config['manageable_cpts'])) {
+        echo '<li class="cfd-sidebar-nav__divider" aria-hidden="true"></li>';
+
+        foreach ($config['manageable_cpts'] as $cpt_slug) {
+            $cpt_obj = get_post_type_object($cpt_slug);
+            if (!$cpt_obj) {
+                continue;
+            }
+
+            // Resolve icon: Dashicon class, SVG URL, or fallback.
+            $icon_html = cfd_get_cpt_icon_html($cpt_obj);
+
+            $manage_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
+            $active_class = ($active_slug === $cpt_slug) ? ' is-active' : '';
+
+            echo '<li class="cfd-sidebar-nav__item' . $active_class . '">';
+            echo '  <a href="' . esc_url($manage_url) . '" class="cfd-sidebar-nav__link">';
+            echo '    ' . $icon_html;
+            echo '    <span class="cfd-sidebar-nav__label">' . esc_html($cpt_obj->labels->name) . '</span>';
+            echo '  </a>';
+            echo '</li>';
+        }
+    }
+
+    echo '</ul>';
+    echo '</nav>';
+
+    return ob_get_clean();
+}
+
+/**
+ * Returns the HTML for a CPT's menu icon.
+ *
+ * WordPress stores CPT icons as:
+ * - A Dashicon class string like 'dashicons-calendar'
+ * - A full URL to an SVG/PNG
+ * - null (no icon set → use default)
+ *
+ * @param WP_Post_Type $cpt_obj  The post type object.
+ * @return string  HTML for the icon.
+ */
+function cfd_get_cpt_icon_html($cpt_obj): string
+{
+    $icon = $cpt_obj->menu_icon;
+    $css_class = 'cfd-sidebar-nav__icon';
+
+    // No icon → default to dashicons-admin-post.
+    if (empty($icon)) {
+        return '<span class="dashicons dashicons-admin-post ' . $css_class . '"></span>';
+    }
+
+    // Dashicon class (starts with "dashicons-").
+    if (strpos($icon, 'dashicons-') === 0) {
+        return '<span class="dashicons ' . esc_attr($icon) . ' ' . $css_class . '"></span>';
+    }
+
+    // URL to image (SVG or PNG).
+    if (filter_var($icon, FILTER_VALIDATE_URL) || strpos($icon, 'data:') === 0) {
+        return '<img src="' . esc_url($icon) . '" alt="" class="' . $css_class . ' ' . $css_class . '--img" width="20" height="20">';
+    }
+
+    // Fallback.
+    return '<span class="dashicons dashicons-admin-post ' . $css_class . '"></span>';
+}
+
+/**
  * [cfd_page_cards] — Renders the editable page card grid.
  *
  * Outputs the clickable page cards for the dashboard home view.
@@ -515,14 +655,24 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     echo '</div>';
 
     // ── Read & sanitize filter/sort/pagination params ────────
-    $allowed_orderby = array('title', 'date', 'modified');
-    $raw_orderby = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'title';
-    $orderby = in_array($raw_orderby, $allowed_orderby, true) ? $raw_orderby : 'title';
+    // Sort uses compound values like 'title-asc', 'date-desc' to encode
+    // both field and direction in a single dropdown.
+    $sort_options = array(
+        'title-asc' => 'A → Z',
+        'title-desc' => 'Z → A',
+        'date-desc' => 'Más recientes',
+        'date-asc' => 'Más antiguos',
+        'modified-desc' => 'Últimos cambios',
+    );
 
-    // Default sort direction: ASC for title, DESC for date/modified.
-    $default_order = ($orderby === 'title') ? 'ASC' : 'DESC';
-    $raw_order = isset($_GET['order']) ? strtoupper(sanitize_key($_GET['order'])) : $default_order;
-    $order = in_array($raw_order, array('ASC', 'DESC'), true) ? $raw_order : $default_order;
+    $raw_sort = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'title-asc';
+    if (!isset($sort_options[$raw_sort])) {
+        $raw_sort = 'title-asc';
+    }
+
+    $sort_parts = explode('-', $raw_sort, 2);
+    $orderby = $sort_parts[0];
+    $order = strtoupper($sort_parts[1]);
 
     $search = isset($_GET['buscar']) ? sanitize_text_field($_GET['buscar']) : '';
     $pag = isset($_GET['pag']) ? max(1, absint($_GET['pag'])) : 1;
@@ -542,13 +692,8 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     echo '    <label for="cd-orderby" class="cd-cpt-toolbar__label">Ordenar</label>';
     echo '    <select name="orderby" id="cd-orderby" class="cd-cpt-toolbar__select" onchange="this.form.submit()">';
 
-    $sort_options = array(
-        'title' => 'Alfabético',
-        'date' => 'Más recientes',
-        'modified' => 'Última modificación',
-    );
     foreach ($sort_options as $value => $label) {
-        $selected = ($orderby === $value) ? ' selected' : '';
+        $selected = ($raw_sort === $value) ? ' selected' : '';
         echo '<option value="' . esc_attr($value) . '"' . $selected . '>' . esc_html($label) . '</option>';
     }
 
@@ -567,7 +712,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     // ── Active search indicator (with clear link) ───────────
     if ($search !== '') {
         $clear_url = add_query_arg(
-            array('manage' => $cpt_slug, 'orderby' => $orderby),
+            array('manage' => $cpt_slug, 'orderby' => $raw_sort),
             $dashboard_url
         );
         echo '<p class="cd-cpt-search-status">';

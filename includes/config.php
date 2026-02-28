@@ -350,3 +350,40 @@ function cfd_bricks_conditions_result($result, $condition_key, $condition)
     // '!=' comparison.
     return $is_home !== $expected;
 }
+
+// ═══════════════════════════════════════════════════════════
+// v3.0 — BRICKS DYNAMIC DATA TAGS
+// ═══════════════════════════════════════════════════════════
+//
+// Registers `{cfd_logout_url}` as a native Bricks dynamic tag.
+// This allows you to select the logout URL from the lightning
+// bolt icon in Bricks (e.g., for a logout button link).
+//
+// ─────────────────────────────────────────────────────────
+
+add_filter('bricks/dynamic_tags_list', 'cfd_register_dynamic_tags');
+
+function cfd_register_dynamic_tags($tags)
+{
+    $tags[] = array(
+        'name' => '{cfd_logout_url}',
+        'label' => 'CFD: Logout URL',
+        'group' => 'Client Dashboard',
+    );
+    return $tags;
+}
+
+add_filter('bricks/dynamic_data/render_tag', 'cfd_render_dynamic_tags', 10, 3);
+
+function cfd_render_dynamic_tags($tag, $post, $context = 'text')
+{
+    if ($tag !== 'cfd_logout_url') {
+        return $tag;
+    }
+
+    if (function_exists('cfd_get_logout_url')) {
+        return esc_url(cfd_get_logout_url());
+    }
+
+    return '';
+}
