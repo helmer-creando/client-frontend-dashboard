@@ -39,6 +39,7 @@ try {
     );
     // Include pre-releases (beta, RC) in update checks.
     $cfd_update_checker->getVcsApi()->enableReleaseAssets();
+    $cfd_update_checker->getVcsApi()->enablePreReleaseCheck();
 // Use GitHub Releases mode (default) — no setBranch() needed.
 // The updater will match release tags like "v2.2.0" against the
 // Version header. The "v" prefix is stripped automatically.
