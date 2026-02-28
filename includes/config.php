@@ -8,10 +8,8 @@
  * the plugin to a new client site. All site-specific values
  * (slugs, CPTs, page IDs) are centralized here.
  *
- * In your original snippets, these values were duplicated
- * across cd_get_config(), cd_login_config(), and several
- * hardcoded 'capitan' / 'mi-espacio' strings. Now there's
- * one source of truth.
+ * Before the plugin existed, config values were duplicated
+ * across multiple places. Now there's one source of truth.
  * ============================================================
  */
 
@@ -69,6 +67,37 @@ function cfd_get_config(): array {
             'testimonials',
             'faq',
         ),
+    );
+}
+
+/**
+ * Number of CPT entries shown per page on the dashboard list view.
+ * Used by cfd_render_cpt_list() for pagination.
+ */
+if ( ! defined( 'CFD_POSTS_PER_PAGE' ) ) {
+    define( 'CFD_POSTS_PER_PAGE', 20 );
+}
+
+/**
+ * Detects whether the current request is inside the Bricks Builder editor.
+ *
+ * Used to prevent redirects and other frontend-only logic from
+ * firing while editing templates in Bricks. Four detection methods
+ * cover all Bricks editor contexts:
+ *
+ * 1. bricks_is_builder()      — standard Bricks function
+ * 2. bricks_is_builder_main() — main builder instance check
+ * 3. $_GET['bricks']          — URL parameter used by the builder
+ * 4. DOING_AJAX               — builder sends data via AJAX
+ *
+ * @return bool True if currently inside the Bricks editor.
+ */
+function cfd_is_bricks_builder(): bool {
+    return (
+        ( function_exists( 'bricks_is_builder' ) && bricks_is_builder() ) ||
+        ( function_exists( 'bricks_is_builder_main' ) && bricks_is_builder_main() ) ||
+        isset( $_GET['bricks'] ) ||
+        ( defined( 'DOING_AJAX' ) && DOING_AJAX )
     );
 }
 

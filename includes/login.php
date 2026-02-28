@@ -46,14 +46,7 @@ function cfd_enqueue_login_styles(): void {
 add_shortcode( 'cd_login_form', 'cfd_render_login_form_smart' );
 
 function cfd_render_login_form_smart(): string {
-    $is_builder = (
-        ( function_exists( 'bricks_is_builder' ) && bricks_is_builder() ) ||
-        ( function_exists( 'bricks_is_builder_main' ) && bricks_is_builder_main() ) ||
-        isset( $_GET['bricks'] ) ||
-        ( defined( 'DOING_AJAX' ) && DOING_AJAX )
-    );
-
-    if ( is_user_logged_in() && ! $is_builder ) {
+    if ( is_user_logged_in() && ! cfd_is_bricks_builder() ) {
         $config = cfd_get_config();
         wp_safe_redirect( home_url( $config['login_redirect'] ) );
         exit;

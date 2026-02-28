@@ -428,6 +428,16 @@
         animation: cd-spin 0.6s linear infinite;
     }
 
+    /* ── Debug info (admin only) ────────────────────────── */
+    .cd-debug-info {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+    }
+
     /* ── CPT list & cards ────────────────────────────────── */
     .cd-cpt-list__header {
         display: flex;
@@ -511,6 +521,170 @@
         color: var(--text-dark-muted, #8A817A);
         font-style: italic;
         font-size: var(--text-s, 0.9rem);
+    }
+
+    /* ── CPT toolbar (sort + search) ─────────────────────── */
+    .cd-cpt-toolbar {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--space-s, 0.85rem);
+        margin-bottom: var(--space-m, 1.5rem);
+        flex-wrap: wrap;
+    }
+
+    .cd-cpt-toolbar__group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .cd-cpt-toolbar__group--search {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .cd-cpt-toolbar__label {
+        font-size: var(--text-xs, 0.72rem);
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-dark-muted, #A09890);
+    }
+
+    .cd-cpt-toolbar__select {
+        appearance: none;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: var(--radius-s, 8px);
+        padding: 0.5rem 2.2rem 0.5rem 0.75rem;
+        font-size: var(--text-s, 0.85rem);
+        font-family: inherit;
+        color: var(--text-dark, #2C2825);
+        background: var(--white, #fff);
+        background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A817A' stroke-width='2.5' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.65rem center;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .cd-cpt-toolbar__select:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--primary, #8B7355) 60%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #8B7355) 10%, transparent);
+    }
+
+    .cd-cpt-toolbar__search {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: var(--radius-s, 8px);
+        padding: 0.5rem 0.75rem;
+        font-size: var(--text-s, 0.85rem);
+        font-family: inherit;
+        color: var(--text-dark, #2C2825);
+        background: var(--white, #fff);
+        width: 100%;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .cd-cpt-toolbar__search:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--primary, #8B7355) 60%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #8B7355) 10%, transparent);
+    }
+
+    .cd-cpt-toolbar__search::placeholder {
+        color: var(--text-dark-muted, #B8AFA7);
+    }
+
+    .cd-cpt-toolbar__submit {
+        padding: 0.5rem 1rem;
+        background: var(--primary, #6B5540);
+        color: var(--white, #FAF8F4);
+        border: none;
+        border-radius: var(--radius-s, 8px);
+        font-size: var(--text-s, 0.85rem);
+        font-family: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+    }
+
+    .cd-cpt-toolbar__submit:hover {
+        background: var(--primary-dark, #5A4535);
+    }
+
+    /* ── Active search status ────────────────────────────── */
+    .cd-cpt-search-status {
+        font-size: var(--text-s, 0.85rem);
+        color: var(--text-dark-muted, #8A817A);
+        margin-bottom: var(--space-s, 0.85rem);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .cd-cpt-search-clear {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--primary, #8B7355);
+        text-decoration: none;
+        padding: 0.15rem 0.5rem;
+        border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 25%, transparent);
+        border-radius: var(--radius-s, 6px);
+        transition: all 0.2s;
+    }
+
+    .cd-cpt-search-clear:hover {
+        background: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent);
+        border-color: color-mix(in srgb, var(--primary, #8B7355) 40%, transparent);
+    }
+
+    /* ── Post count ──────────────────────────────────────── */
+    .cd-cpt-count {
+        font-size: var(--text-xs, 0.78rem);
+        color: var(--text-dark-muted, #A09890);
+        margin-bottom: var(--space-xs, 0.5rem);
+    }
+
+    /* ── Pagination ──────────────────────────────────────── */
+    .cd-cpt-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-s, 0.85rem);
+        margin-top: var(--space-m, 1.5rem);
+        padding-top: var(--space-m, 1.5rem);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .cd-cpt-pagination__link {
+        font-size: var(--text-s, 0.85rem);
+        color: var(--primary, #8B7355);
+        text-decoration: none;
+        padding: 0.4rem 0.85rem;
+        border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 25%, transparent);
+        border-radius: var(--radius-s, 8px);
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+
+    .cd-cpt-pagination__link:hover {
+        background: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent);
+        border-color: color-mix(in srgb, var(--primary, #8B7355) 40%, transparent);
+        color: var(--primary-dark, #5A4535);
+    }
+
+    .cd-cpt-pagination__link--disabled {
+        color: var(--text-dark-muted, #C5BEB7);
+        border-color: rgba(0, 0, 0, 0.06);
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .cd-cpt-pagination__current {
+        font-size: var(--text-s, 0.85rem);
+        color: var(--text-dark, #2C2825);
+        font-weight: 500;
     }
 
     /* ═══════════════════════════════════════════════════════
@@ -965,6 +1139,26 @@
             flex-direction: column;
             align-items: flex-start;
             gap: var(--space-xs, 0.5rem);
+        }
+
+        /* Toolbar stacks vertically on mobile */
+        .cd-cpt-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .cd-cpt-toolbar__group--search {
+            min-width: 100%;
+        }
+
+        .cd-cpt-toolbar__submit {
+            align-self: flex-start;
+        }
+
+        /* Pagination fits on small screens */
+        .cd-cpt-pagination {
+            gap: var(--space-xs, 0.5rem);
+            flex-wrap: wrap;
         }
 
         /* Remove field separator lines — text was hitting them.

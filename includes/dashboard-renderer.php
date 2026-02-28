@@ -195,7 +195,7 @@ function cfd_render_dashboard_home( WP_User $user, array $config ): void {
 
     // Debug mode — only visible to admins when WP_DEBUG is on.
     if ( defined( 'WP_DEBUG' ) && WP_DEBUG && current_user_can( 'manage_options' ) ) {
-        echo '<div style="background:#fff3cd;border:1px solid #ffc107;padding:1rem;border-radius:8px;margin-bottom:1rem;font-size:0.85rem;">';
+        echo '<div class="cd-debug-info">';
         echo '<strong>🔧 Debug info (admin only, WP_DEBUG is on):</strong><br>';
         echo 'Pages found: ' . count( $pages ) . '<br>';
         echo 'manageable_cpts: [' . implode( ', ', $config['manageable_cpts'] ) . ']';
@@ -337,19 +337,109 @@ function cfd_render_cpt_list( string $cpt_slug, WP_User $user ): void {
     echo '  <a href="' . esc_url( $create_url ) . '" class="cd-add-btn">+ Agregar nuevo</a>';
     echo '</div>';
 
-    $posts = get_posts( array(
+    // ── Read & sanitize filter/sort/pagination params ────────
+    $allowed_orderby = array( 'title', 'date', 'modified' );
+    $raw_orderby     = isset( $_GET['orderby'] ) ? sanitize_key( $_GET['orderby'] ) : 'title';
+    $orderby         = in_array( $raw_orderby, $allowed_orderby, true ) ? $raw_orderby : 'title';
+
+    // Default sort direction: ASC for title, DESC for date/modified.
+    $default_order = ( $orderby === 'title' ) ? 'ASC' : 'DESC';
+    $raw_order     = isset( $_GET['order'] ) ? strtoupper( sanitize_key( $_GET['order'] ) ) : $default_order;
+    $order         = in_array( $raw_order, array( 'ASC', 'DESC' ), true ) ? $raw_order : $default_order;
+
+    $search = isset( $_GET['buscar'] ) ? sanitize_text_field( $_GET['buscar'] ) : '';
+    $pag    = isset( $_GET['pag'] )    ? max( 1, absint( $_GET['pag'] ) )       : 1;
+
+    $per_page = CFD_POSTS_PER_PAGE;
+
+    // ── Toolbar: sort dropdown + search ─────────────────────
+    // The form GETs to the same page, preserving ?manage=slug.
+    $toolbar_action = add_query_arg( array( 'manage' => $cpt_slug ), $dashboard_url );
+
+    echo '<form method="get" action="' . esc_url( $toolbar_action ) . '" class="cd-cpt-toolbar">';
+    // Preserve the manage param (required for routing).
+    echo '  <input type="hidden" name="manage" value="' . esc_attr( $cpt_slug ) . '">';
+
+    // ── Sort dropdown ──
+    echo '  <div class="cd-cpt-toolbar__group">';
+    echo '    <label for="cd-orderby" class="cd-cpt-toolbar__label">Ordenar</label>';
+    echo '    <select name="orderby" id="cd-orderby" class="cd-cpt-toolbar__select" onchange="this.form.submit()">';
+
+    $sort_options = array(
+        'title'    => 'Alfabético',
+        'date'     => 'Más recientes',
+        'modified' => 'Última modificación',
+    );
+    foreach ( $sort_options as $value => $label ) {
+        $selected = ( $orderby === $value ) ? ' selected' : '';
+        echo '<option value="' . esc_attr( $value ) . '"' . $selected . '>' . esc_html( $label ) . '</option>';
+    }
+
+    echo '    </select>';
+    echo '  </div>';
+
+    // ── Search input ──
+    echo '  <div class="cd-cpt-toolbar__group cd-cpt-toolbar__group--search">';
+    echo '    <label for="cd-buscar" class="cd-cpt-toolbar__label">Buscar</label>';
+    echo '    <input type="text" name="buscar" id="cd-buscar" class="cd-cpt-toolbar__search" value="' . esc_attr( $search ) . '" placeholder="Buscar...">';
+    echo '  </div>';
+
+    echo '  <button type="submit" class="cd-cpt-toolbar__submit">Filtrar</button>';
+    echo '</form>';
+
+    // ── Active search indicator (with clear link) ───────────
+    if ( $search !== '' ) {
+        $clear_url = add_query_arg(
+            array( 'manage' => $cpt_slug, 'orderby' => $orderby ),
+            $dashboard_url
+        );
+        echo '<p class="cd-cpt-search-status">';
+        echo '  Resultados para "<strong>' . esc_html( $search ) . '</strong>"';
+        echo '  <a href="' . esc_url( $clear_url ) . '" class="cd-cpt-search-clear">✕ Limpiar</a>';
+        echo '</p>';
+    }
+
+    // ── Query posts with WP_Query for pagination support ────
+    $query_args = array(
         'post_type'      => $cpt_slug,
         'post_status'    => 'publish',
-        'posts_per_page' => 50,
-        'orderby'        => 'title',
-        'order'          => 'ASC',
-    ) );
+        'posts_per_page' => $per_page,
+        'paged'          => $pag,
+        'orderby'        => $orderby,
+        'order'          => $order,
+    );
 
-    if ( empty( $posts ) ) {
-        echo '<p class="cd-cpt-list__empty">Todavía no hay entradas. Haz clic en "Agregar nuevo" para crear una.</p>';
+    if ( $search !== '' ) {
+        $query_args['s'] = $search;
+    }
+
+    $query       = new WP_Query( $query_args );
+    $total_posts = $query->found_posts;
+    $total_pages = $query->max_num_pages;
+
+    // Clamp current page to valid range.
+    if ( $pag > $total_pages && $total_pages > 0 ) {
+        $pag = $total_pages;
+    }
+
+    if ( ! $query->have_posts() ) {
+        if ( $search !== '' ) {
+            echo '<p class="cd-cpt-list__empty">No se encontraron resultados para "' . esc_html( $search ) . '".</p>';
+        } else {
+            echo '<p class="cd-cpt-list__empty">Todavía no hay entradas. Haz clic en "Agregar nuevo" para crear una.</p>';
+        }
     } else {
+        // ── Post count ──
+        $first_item = ( ( $pag - 1 ) * $per_page ) + 1;
+        $last_item  = min( $pag * $per_page, $total_posts );
+
+        echo '<p class="cd-cpt-count">Mostrando ' . $first_item . '–' . $last_item . ' de ' . $total_posts . '</p>';
+
+        // ── Grid of cards ──
         echo '<div class="cd-cpt-grid">';
-        foreach ( $posts as $p ) {
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            $p        = get_post();
             $edit_url = add_query_arg( array( 'edit' => $cpt_slug, 'id' => $p->ID ), $dashboard_url );
             $view_url = get_permalink( $p->ID );
 
@@ -358,7 +448,47 @@ function cfd_render_cpt_list( string $cpt_slug, WP_User $user ): void {
             echo '  <span class="cd-cpt-card__view" data-href="' . esc_url( $view_url ) . '">Ver ↗</span>';
             echo '</a>';
         }
+        wp_reset_postdata();
         echo '</div>';
+
+        // ── Pagination ──
+        if ( $total_pages > 1 ) {
+            // Build base URL preserving all current filters.
+            $base_args = array( 'manage' => $cpt_slug );
+            if ( $orderby !== 'title' ) {
+                $base_args['orderby'] = $orderby;
+            }
+            if ( $search !== '' ) {
+                $base_args['buscar'] = $search;
+            }
+
+            echo '<nav class="cd-cpt-pagination" aria-label="Paginación">';
+
+            // ← Previous
+            if ( $pag > 1 ) {
+                $prev_args        = $base_args;
+                $prev_args['pag'] = $pag - 1;
+                $prev_url         = add_query_arg( $prev_args, $dashboard_url );
+                echo '<a href="' . esc_url( $prev_url ) . '" class="cd-cpt-pagination__link">← Anterior</a>';
+            } else {
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled">← Anterior</span>';
+            }
+
+            // Page indicator
+            echo '<span class="cd-cpt-pagination__current">Página ' . $pag . ' de ' . $total_pages . '</span>';
+
+            // Next →
+            if ( $pag < $total_pages ) {
+                $next_args        = $base_args;
+                $next_args['pag'] = $pag + 1;
+                $next_url         = add_query_arg( $next_args, $dashboard_url );
+                echo '<a href="' . esc_url( $next_url ) . '" class="cd-cpt-pagination__link">Siguiente →</a>';
+            } else {
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled">Siguiente →</span>';
+            }
+
+            echo '</nav>';
+        }
     }
 
     echo '</div>';
