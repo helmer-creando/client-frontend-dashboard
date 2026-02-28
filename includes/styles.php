@@ -13,19 +13,20 @@
  * ============================================================
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
-add_action( 'wp_enqueue_scripts', 'cfd_enqueue_dashboard_styles' );
+add_action('wp_enqueue_scripts', 'cfd_enqueue_dashboard_styles');
 
-function cfd_enqueue_dashboard_styles(): void {
+function cfd_enqueue_dashboard_styles(): void
+{
     $config = cfd_get_config();
 
-    if ( ! is_page( $config['dashboard_slug'] ) ) {
+    if (!is_page($config['dashboard_slug']) && !cfd_is_bricks_builder()) {
         return;
     }
-    if ( ! is_user_logged_in() ) {
+    if (!is_user_logged_in()) {
         return;
     }
 

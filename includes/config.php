@@ -370,6 +370,26 @@ function cfd_register_dynamic_tags($tags)
         'label' => 'CFD: Logout URL',
         'group' => 'Client Dashboard',
     );
+    $tags[] = array(
+        'name' => '{cfd_nav_label}',
+        'label' => 'CFD Nav: Label',
+        'group' => 'Client Dashboard',
+    );
+    $tags[] = array(
+        'name' => '{cfd_nav_url}',
+        'label' => 'CFD Nav: URL',
+        'group' => 'Client Dashboard',
+    );
+    $tags[] = array(
+        'name' => '{cfd_nav_icon}',
+        'label' => 'CFD Nav: Dashicon class',
+        'group' => 'Client Dashboard',
+    );
+    $tags[] = array(
+        'name' => '{cfd_nav_active_class}',
+        'label' => 'CFD Nav: Active CSS class',
+        'group' => 'Client Dashboard',
+    );
     return $tags;
 }
 
@@ -377,13 +397,219 @@ add_filter('bricks/dynamic_data/render_tag', 'cfd_render_dynamic_tags', 10, 3);
 
 function cfd_render_dynamic_tags($tag, $post, $context = 'text')
 {
-    if ($tag !== 'cfd_logout_url') {
+    if ($tag === 'cfd_logout_url') {
+        return function_exists('cfd_get_logout_url')
+            ? esc_url(cfd_get_logout_url())
+            : '';
+    }
+
+    // Sidebar nav dynamic tags — require the current loop object.
+    $nav_tags = array('cfd_nav_label', 'cfd_nav_url', 'cfd_nav_icon', 'cfd_nav_active_class');
+    if (!in_array($tag, $nav_tags, true)) {
         return $tag;
     }
 
-    if (function_exists('cfd_get_logout_url')) {
-        return esc_url(cfd_get_logout_url());
+    // Get the current loop object (set by our custom query).
+    $item = cfd_get_current_nav_item();
+    if (!$item) {
+        return '';
+    }
+
+    switch ($tag) {
+        case 'cfd_nav_label':
+            return esc_html($item->label);
+        case 'cfd_nav_url':
+            return esc_url($item->url);
+        case 'cfd_nav_icon':
+            return esc_attr($item->icon);
+        case 'cfd_nav_active_class':
+            return $item->is_active ? 'is-active' : '';
     }
 
     return '';
+}
+
+/**
+ * Helper: returns the current Bricks loop object if it's a nav item.
+ *
+ * Bricks stores the current loop object internally via its Query class.
+ * We access it through the global Bricks query instance.
+ *
+ * @return object|null  Nav item with ->label, ->url, ->icon, ->is_active.
+ */
+function cfd_get_current_nav_item()
+{
+    if (!class_exists('\Bricks\Query')) {
+        return null;
+    }
+    $loop_obj = \Bricks\Query::get_loop_object();
+    if ($loop_obj && isset($loop_obj->cfd_nav_item)) {
+        return $loop_obj;
+    }
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// v3.0 — BRICKS QUERY LOOP: SIDEBAR NAV
+// ═══════════════════════════════════════════════════════════
+//
+// Registers "cfd_nav" as a custom Bricks query type so the
+// sidebar navigation items can be rendered via a Bricks Query
+// Loop. The user designs each nav item visually in Bricks.
+//
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Step 1: Add "CFD Sidebar Nav" to the query type dropdown.
+ */
+add_filter('bricks/setup/control_options', 'cfd_register_query_type');
+
+function cfd_register_query_type($control_options)
+{
+    $control_options['queryTypes']['cfd_nav'] = esc_html__('CFD Sidebar Nav', 'cfd');
+    return $control_options;
+}
+
+/**
+ * Step 2: Run the custom query — return nav items as objects.
+ */
+add_filter('bricks/query/run', 'cfd_run_nav_query', 10, 2);
+
+function cfd_run_nav_query($results, $query)
+{
+    if ($query->object_type !== 'cfd_nav') {
+        return $results;
+    }
+
+    return cfd_build_nav_items();
+}
+
+/**
+ * Step 3: Tell Bricks how to read each loop object.
+ */
+add_filter('bricks/query/loop_object', 'cfd_nav_loop_object', 10, 3);
+
+function cfd_nav_loop_object($loop_object, $loop_key, $query)
+{
+    if ($query->object_type !== 'cfd_nav') {
+        return $loop_object;
+    }
+    return $loop_object;
+}
+
+/**
+ * Step 4: Provide a unique ID for each loop object.
+ */
+add_filter('bricks/query/loop_object_id', 'cfd_nav_loop_object_id', 10, 3);
+
+function cfd_nav_loop_object_id($object_id, $loop_object, $query)
+{
+    if ($query->object_type !== 'cfd_nav') {
+        return $object_id;
+    }
+    return isset($loop_object->slug) ? $loop_object->slug : $object_id;
+}
+
+/**
+ * Step 5: Provide the loop object type.
+ */
+add_filter('bricks/query/loop_object_type', 'cfd_nav_loop_object_type', 10, 3);
+
+function cfd_nav_loop_object_type($object_type, $loop_object, $query)
+{
+    if ($query->object_type !== 'cfd_nav') {
+        return $object_type;
+    }
+    return 'cfd_nav';
+}
+
+/**
+ * Build the nav items array from plugin config.
+ *
+ * Returns an array of stdClass objects, each with:
+ *   ->slug       string  Unique identifier
+ *   ->label      string  Display label
+ *   ->url        string  Link URL
+ *   ->icon       string  Dashicons CSS class (e.g. "dashicons dashicons-dashboard")
+ *   ->is_active  bool    Whether this item matches the current view
+ *   ->cfd_nav_item bool  Marker so we can identify these in the loop
+ *
+ * @return object[]
+ */
+function cfd_build_nav_items(): array
+{
+    if (!function_exists('cfd_get_config')) {
+        return array();
+    }
+
+    $config = cfd_get_config();
+    $dashboard_url = cfd_get_dashboard_url();
+    $view = cfd_get_dashboard_view();
+
+    // Determine active slug.
+    $active_slug = 'home';
+    if ($view === 'edit_page') {
+        $active_slug = 'pages';
+    }
+    elseif ($view === 'manage' && isset($_GET['manage'])) {
+        $active_slug = sanitize_key($_GET['manage']);
+    }
+    elseif ($view === 'edit_cpt' && isset($_GET['edit'])) {
+        $active_slug = sanitize_key($_GET['edit']);
+    }
+    elseif ($view === 'create' && isset($_GET['create'])) {
+        $active_slug = sanitize_key($_GET['create']);
+    }
+
+    $items = array();
+
+    // 1. Inicio.
+    $item = new \stdClass();
+    $item->cfd_nav_item = true;
+    $item->slug = 'home';
+    $item->label = 'Inicio';
+    $item->url = $dashboard_url;
+    $item->icon = 'dashicons dashicons-dashboard';
+    $item->is_active = ($active_slug === 'home');
+    $items[] = $item;
+
+    // 2. Páginas (only if editable pages exist).
+    $pages = cfd_get_editable_pages($config);
+    if (!empty($pages)) {
+        $item = new \stdClass();
+        $item->cfd_nav_item = true;
+        $item->slug = 'pages';
+        $item->label = 'Páginas';
+        $item->url = $dashboard_url;
+        $item->icon = 'dashicons dashicons-admin-page';
+        $item->is_active = ($active_slug === 'pages');
+        $items[] = $item;
+    }
+
+    // 3. Manageable CPTs.
+    if (!empty($config['manageable_cpts'])) {
+        foreach ($config['manageable_cpts'] as $cpt_slug) {
+            $cpt_obj = get_post_type_object($cpt_slug);
+            if (!$cpt_obj) {
+                continue;
+            }
+
+            // Resolve icon.
+            $icon_class = 'dashicons dashicons-admin-post'; // fallback
+            if (!empty($cpt_obj->menu_icon) && strpos($cpt_obj->menu_icon, 'dashicons-') === 0) {
+                $icon_class = 'dashicons ' . $cpt_obj->menu_icon;
+            }
+
+            $item = new \stdClass();
+            $item->cfd_nav_item = true;
+            $item->slug = $cpt_slug;
+            $item->label = $cpt_obj->labels->name;
+            $item->url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
+            $item->icon = $icon_class;
+            $item->is_active = ($active_slug === $cpt_slug);
+            $items[] = $item;
+        }
+    }
+
+    return $items;
 }
