@@ -295,7 +295,11 @@ if ( !class_exists(Api::class, false) ):
 				return null;
 			}
 
-			return Parsedown::instance()->text($changelog);
+			if ( class_exists('Parsedown') ) {
+				return Parsedown::instance()->text($changelog);
+			}
+			// Parsedown not available — return raw markdown as fallback.
+			return $changelog;
 		}
 
 		/**

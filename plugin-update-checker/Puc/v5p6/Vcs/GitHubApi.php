@@ -141,8 +141,11 @@ if ( !class_exists(GitHubApi::class, false) ):
 					}
 				}
 
-				if ( !empty($release->body) ) {
+				if ( !empty($release->body) && class_exists('Parsedown') ) {
 					$reference->changelog = Parsedown::instance()->text($release->body);
+				} elseif ( !empty($release->body) ) {
+					// Parsedown not available — store raw markdown as fallback.
+					$reference->changelog = $release->body;
 				}
 
 				return $reference;
