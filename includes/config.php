@@ -321,19 +321,24 @@ function cfd_bricks_conditions_options(array $options): array
  * We only handle our own key ('cfd_home_view') and pass through
  * everything else.
  *
- * @param bool  $result  Current result (from previous filters).
- * @param string $key    The condition key.
- * @param string $compare The comparison operator ('==' or '!=').
- * @param string $value   The expected value ('true' or 'false').
+ * API reference: https://academy.bricksbuilder.io/article/element-conditions/
+ *
+ * @param bool   $result        Current result (from previous filters).
+ * @param string $condition_key The condition key (e.g., 'cfd_home_view').
+ * @param array  $condition     The full condition array with 'compare' and 'value' keys.
  * @return bool
  */
-add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 4);
+add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
 
-function cfd_bricks_conditions_result(bool $result, string $key, string $compare, string $value): bool
+function cfd_bricks_conditions_result($result, $condition_key, $condition)
 {
-    if ($key !== 'cfd_home_view') {
+    if ($condition_key !== 'cfd_home_view') {
         return $result;
     }
+
+    // Extract compare and value from the condition array.
+    $compare = isset($condition['compare']) ? $condition['compare'] : '==';
+    $value = isset($condition['value']) ? $condition['value'] : 'true';
 
     $is_home = cfd_is_dashboard_home();
     $expected = ($value === 'true');
