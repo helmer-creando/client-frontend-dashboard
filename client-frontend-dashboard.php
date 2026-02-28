@@ -37,6 +37,8 @@ try {
         __FILE__,
         'client-frontend-dashboard'
     );
+    // Include pre-releases (beta, RC) in update checks.
+    $cfd_update_checker->getVcsApi()->enableReleaseAssets();
 // Use GitHub Releases mode (default) — no setBranch() needed.
 // The updater will match release tags like "v2.2.0" against the
 // Version header. The "v" prefix is stripped automatically.
@@ -60,6 +62,14 @@ require_once CFD_PATH . 'includes/login.php';
 // ─── Admin settings page (only loads in wp-admin) ────────────
 if (is_admin()) {
     require_once CFD_PATH . 'includes/admin-settings.php';
+
+    // Add "Settings" link next to "Deactivate" on the Plugins page.
+    add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
+        $settings_url = admin_url('options-general.php?page=cfd-settings');
+        $settings_link = '<a href="' . esc_url($settings_url) . '">Settings</a>';
+        array_unshift($links, $settings_link);
+        return $links;
+    });
 }
 
 // ─── Activation hook ────────────────────────────────────────
