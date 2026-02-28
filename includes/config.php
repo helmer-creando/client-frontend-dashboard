@@ -17,7 +17,7 @@
  * ============================================================
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
     exit;
 }
 
@@ -36,11 +36,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     @type string[] $manageable_cpts  CPT slugs clients can list/create/edit/delete.
  * }
  */
-function cfd_get_config(): array {
+function cfd_get_config(): array
+{
     // Cache the result so we don't query wp_options multiple times
     // per request (this function is called from nearly every module).
     static $config = null;
-    if ( $config !== null ) {
+    if ($config !== null) {
         return $config;
     }
 
@@ -49,44 +50,44 @@ function cfd_get_config(): array {
 
         // ── Dashboard page slug ─────────────────────────────
         // The WordPress page where [client_dashboard] lives.
-        'dashboard_slug'  => 'mi-espacio',
+        'dashboard_slug' => 'mi-espacio',
 
         // ── Login page slug ─────────────────────────────────
         // The WordPress page where [cd_login_form] lives.
-        'login_slug'      => 'capitan',
+        'login_slug' => 'capitan',
 
         // ── Post-login redirect path ────────────────────────
         // Where site_editor users land after logging in.
-        'login_redirect'  => '/mi-espacio/',
+        'login_redirect' => '/mi-espacio/',
 
         // ── Editable pages ──────────────────────────────────
         // Page IDs the client can edit from the dashboard.
         // Leave empty to auto-detect.
-        'editable_pages'  => array(),
+        'editable_pages' => array(),
 
         // ── Manageable CPTs ─────────────────────────────────
         // Fallback list used ONLY if nothing is saved in the DB yet.
         // Once you save from the settings page, the DB value takes over.
-        'manageable_cpts' => array( 'retreats', 'testimonials', 'faq' ),
+        'manageable_cpts' => array('retreats', 'testimonials', 'faq'),
     );
 
     // ── Merge with DB settings ──────────────────────────────
     // If the admin has saved settings via Settings → Client Dashboard,
     // those values override the hardcoded defaults above.
-    $db_settings = get_option( 'cfd_settings', array() );
+    $db_settings = get_option('cfd_settings', array());
 
-    if ( isset( $db_settings['dashboard_slug'] ) && $db_settings['dashboard_slug'] !== '' ) {
+    if (isset($db_settings['dashboard_slug']) && $db_settings['dashboard_slug'] !== '') {
         $config['dashboard_slug'] = $db_settings['dashboard_slug'];
     }
-    if ( isset( $db_settings['login_slug'] ) && $db_settings['login_slug'] !== '' ) {
+    if (isset($db_settings['login_slug']) && $db_settings['login_slug'] !== '') {
         $config['login_slug'] = $db_settings['login_slug'];
     }
-    if ( isset( $db_settings['login_redirect'] ) && $db_settings['login_redirect'] !== '' ) {
+    if (isset($db_settings['login_redirect']) && $db_settings['login_redirect'] !== '') {
         $config['login_redirect'] = $db_settings['login_redirect'];
     }
     // CPTs: if the admin has saved a selection, use it.
     // An empty array means "none selected" — which is a valid choice.
-    if ( isset( $db_settings['manageable_cpts'] ) && is_array( $db_settings['manageable_cpts'] ) ) {
+    if (isset($db_settings['manageable_cpts']) && is_array($db_settings['manageable_cpts'])) {
         $config['manageable_cpts'] = $db_settings['manageable_cpts'];
     }
 
@@ -97,8 +98,8 @@ function cfd_get_config(): array {
  * Number of CPT entries shown per page on the dashboard list view.
  * Used by cfd_render_cpt_list() for pagination.
  */
-if ( ! defined( 'CFD_POSTS_PER_PAGE' ) ) {
-    define( 'CFD_POSTS_PER_PAGE', 20 );
+if (!defined('CFD_POSTS_PER_PAGE')) {
+    define('CFD_POSTS_PER_PAGE', 20);
 }
 
 /**
@@ -115,13 +116,14 @@ if ( ! defined( 'CFD_POSTS_PER_PAGE' ) ) {
  *
  * @return bool True if currently inside the Bricks editor.
  */
-function cfd_is_bricks_builder(): bool {
+function cfd_is_bricks_builder(): bool
+{
     return (
-        ( function_exists( 'bricks_is_builder' ) && bricks_is_builder() ) ||
-        ( function_exists( 'bricks_is_builder_main' ) && bricks_is_builder_main() ) ||
-        isset( $_GET['bricks'] ) ||
-        ( defined( 'DOING_AJAX' ) && DOING_AJAX )
-    );
+        (function_exists('bricks_is_builder') && bricks_is_builder()) ||
+        (function_exists('bricks_is_builder_main') && bricks_is_builder_main()) ||
+        isset($_GET['bricks']) ||
+        (defined('DOING_AJAX') && DOING_AJAX)
+        );
 }
 
 /**
@@ -133,7 +135,8 @@ function cfd_is_bricks_builder(): bool {
  *
  * @return string[]
  */
-function cfd_get_no_cache_slugs(): array {
+function cfd_get_no_cache_slugs(): array
+{
     $config = cfd_get_config();
     return array(
         $config['dashboard_slug'],
@@ -152,11 +155,12 @@ function cfd_get_no_cache_slugs(): array {
  *
  * @return array Associative array of [ 'slug' => 'Label' ] pairs.
  */
-function cfd_detect_available_cpts(): array {
-    $all_cpts = get_post_types( array(
-        'public'   => true,
+function cfd_detect_available_cpts(): array
+{
+    $all_cpts = get_post_types(array(
+        'public' => true,
         '_builtin' => false,
-    ), 'objects' );
+    ), 'objects');
 
     // Types to always exclude — internal/utility types from
     // WordPress, ACF, Bricks, and other common plugins.
@@ -175,14 +179,169 @@ function cfd_detect_available_cpts(): array {
 
     $detected = array();
 
-    foreach ( $all_cpts as $slug => $cpt_obj ) {
-        if ( in_array( $slug, $exclude, true ) ) {
+    foreach ($all_cpts as $slug => $cpt_obj) {
+        if (in_array($slug, $exclude, true)) {
             continue;
         }
-        $detected[ $slug ] = $cpt_obj->labels->name;
+        $detected[$slug] = $cpt_obj->labels->name;
     }
 
-    asort( $detected );
+    asort($detected);
 
     return $detected;
+}
+
+// ═══════════════════════════════════════════════════════════
+// v3.0 — DASHBOARD VIEW DETECTION
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Detects which dashboard view is active based on URL parameters.
+ *
+ * Used by the Bricks condition system and the new v3 shortcodes
+ * to determine what content to show on the single /mi-espacio/ page.
+ *
+ * @return string One of: 'home', 'edit_page', 'edit_cpt', 'manage', 'create'.
+ */
+function cfd_get_dashboard_view(): string
+{
+    static $view = null;
+    if ($view !== null) {
+        return $view;
+    }
+
+    $config = cfd_get_config();
+
+    // Not on the dashboard page → no dashboard view.
+    if (!is_page($config['dashboard_slug'])) {
+        $view = '';
+        return $view;
+    }
+
+    $edit = isset($_GET['edit']) ? sanitize_key($_GET['edit']) : '';
+    $manage = isset($_GET['manage']) ? sanitize_key($_GET['manage']) : '';
+    $create = isset($_GET['create']) ? sanitize_key($_GET['create']) : '';
+    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+
+    if ($edit === 'page' && $id > 0) {
+        $view = 'edit_page';
+    }
+    elseif ($edit && $id > 0 && in_array($edit, $config['manageable_cpts'], true)) {
+        $view = 'edit_cpt';
+    }
+    elseif ($manage && in_array($manage, $config['manageable_cpts'], true)) {
+        $view = 'manage';
+    }
+    elseif ($create && in_array($create, $config['manageable_cpts'], true)) {
+        $view = 'create';
+    }
+    else {
+        $view = 'home';
+    }
+
+    return $view;
+}
+
+/**
+ * Returns true when the dashboard is showing the home view.
+ *
+ * Convenience function used as a Bricks condition evaluator
+ * and available for use in theme/template logic.
+ *
+ * @return bool
+ */
+function cfd_is_dashboard_home(): bool
+{
+    return cfd_get_dashboard_view() === 'home';
+}
+
+// ═══════════════════════════════════════════════════════════
+// v3.0 — BRICKS CONDITION REGISTRATION
+// ═══════════════════════════════════════════════════════════
+//
+// Registers a "Client Dashboard" conditions group in Bricks so
+// the user can control element visibility based on the current
+// dashboard view — directly from the Bricks editor UI.
+//
+// Usage in Bricks:
+//   Element → Conditions → Add condition
+//   → Group: "Client Dashboard"
+//   → Option: "Home View"
+//   → Compare: "is" or "is not"
+//
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Add "Client Dashboard" to the Bricks conditions group list.
+ */
+add_filter('bricks/conditions/groups', 'cfd_bricks_conditions_groups');
+
+function cfd_bricks_conditions_groups(array $groups): array
+{
+    $groups[] = array(
+        'name' => 'cfd',
+        'label' => 'Client Dashboard',
+    );
+    return $groups;
+}
+
+/**
+ * Add condition options within the "Client Dashboard" group.
+ */
+add_filter('bricks/conditions/options', 'cfd_bricks_conditions_options');
+
+function cfd_bricks_conditions_options(array $options): array
+{
+    $options[] = array(
+        'key' => 'cfd_home_view',
+        'label' => 'Home View',
+        'group' => 'cfd',
+        'compare' => array(
+            'type' => 'select',
+            'options' => array(
+                '==' => 'is',
+                '!=' => 'is not',
+            ),
+        ),
+        'value' => array(
+            'type' => 'select',
+            'options' => array(
+                'true' => 'Active (home)',
+                'false' => 'Active (edit/manage/create)',
+            ),
+        ),
+    );
+    return $options;
+}
+
+/**
+ * Evaluate the "Home View" condition.
+ *
+ * Bricks calls this filter for every condition on every element.
+ * We only handle our own key ('cfd_home_view') and pass through
+ * everything else.
+ *
+ * @param bool  $result  Current result (from previous filters).
+ * @param string $key    The condition key.
+ * @param string $compare The comparison operator ('==' or '!=').
+ * @param string $value   The expected value ('true' or 'false').
+ * @return bool
+ */
+add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 4);
+
+function cfd_bricks_conditions_result(bool $result, string $key, string $compare, string $value): bool
+{
+    if ($key !== 'cfd_home_view') {
+        return $result;
+    }
+
+    $is_home = cfd_is_dashboard_home();
+    $expected = ($value === 'true');
+
+    if ($compare === '==') {
+        return $is_home === $expected;
+    }
+
+    // '!=' comparison.
+    return $is_home !== $expected;
 }
