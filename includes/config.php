@@ -1,15 +1,19 @@
 <?php
 /**
  * ============================================================
- * CFD Configuration — Edit This Per Project
+ * CFD Configuration
  * ============================================================
  *
- * This is the ONLY file you need to change when deploying
- * the plugin to a new client site. All site-specific values
- * (slugs, CPTs, page IDs) are centralized here.
+ * Merges two sources:
+ * 1. Hardcoded defaults below (fallbacks + slugs you set per project)
+ * 2. Database settings from the admin page (Settings → Client Dashboard)
  *
- * Before the plugin existed, config values were duplicated
- * across multiple places. Now there's one source of truth.
+ * The admin settings page lets you toggle which CPTs appear in the
+ * dashboard, and configure slugs. If no DB settings exist yet, the
+ * hardcoded defaults below are used as-is.
+ *
+ * v2.2 additions: CFD_POSTS_PER_PAGE constant, cfd_is_bricks_builder()
+ * helper, and cfd_detect_available_cpts() for the settings page.
  * ============================================================
  */
 
@@ -21,7 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Returns the full plugin configuration array.
  *
  * Every module calls this function instead of hardcoding slugs.
- * When you set up a new client site, edit the values below.
+ * Results are cached per-request via a static variable so we
+ * don't query wp_options multiple times per page load.
  *
  * @return array {
  *     @type string   $dashboard_slug   Slug of the dashboard page (e.g., 'mi-espacio').
@@ -32,42 +37,60 @@ if ( ! defined( 'ABSPATH' ) ) {
  * }
  */
 function cfd_get_config(): array {
-    return array(
+    // Cache the result so we don't query wp_options multiple times
+    // per request (this function is called from nearly every module).
+    static $config = null;
+    if ( $config !== null ) {
+        return $config;
+    }
+
+    // ── Hardcoded defaults (edit per project) ────────────────
+    $config = array(
 
         // ── Dashboard page slug ─────────────────────────────
         // The WordPress page where [client_dashboard] lives.
-        // Use a human, colloquial slug — not dev-speak.
-        // Examples: 'mi-espacio', 'my-space', 'my-dashboard'
         'dashboard_slug'  => 'mi-espacio',
 
         // ── Login page slug ─────────────────────────────────
         // The WordPress page where [cd_login_form] lives.
-        // This replaces the default wp-login.php for clients.
-        // Examples: 'capitan', 'login', 'acceso'
         'login_slug'      => 'capitan',
 
         // ── Post-login redirect path ────────────────────────
         // Where site_editor users land after logging in.
-        // Must match the dashboard slug above (with slashes).
         'login_redirect'  => '/mi-espacio/',
 
         // ── Editable pages ──────────────────────────────────
         // Page IDs the client can edit from the dashboard.
-        // Leave empty to auto-detect all published pages that
-        // have ACF field groups assigned to them.
-        // Or hardcode: array( 2, 15, 23, 40, 55 )
+        // Leave empty to auto-detect.
         'editable_pages'  => array(),
 
         // ── Manageable CPTs ─────────────────────────────────
-        // Post type slugs the client can list, create, edit,
-        // and delete from the dashboard.
-        // These must match your registered CPT slugs exactly.
-        'manageable_cpts' => array(
-            'retreats',
-            'testimonials',
-            'faq',
-        ),
+        // Fallback list used ONLY if nothing is saved in the DB yet.
+        // Once you save from the settings page, the DB value takes over.
+        'manageable_cpts' => array( 'retreats', 'testimonials', 'faq' ),
     );
+
+    // ── Merge with DB settings ──────────────────────────────
+    // If the admin has saved settings via Settings → Client Dashboard,
+    // those values override the hardcoded defaults above.
+    $db_settings = get_option( 'cfd_settings', array() );
+
+    if ( isset( $db_settings['dashboard_slug'] ) && $db_settings['dashboard_slug'] !== '' ) {
+        $config['dashboard_slug'] = $db_settings['dashboard_slug'];
+    }
+    if ( isset( $db_settings['login_slug'] ) && $db_settings['login_slug'] !== '' ) {
+        $config['login_slug'] = $db_settings['login_slug'];
+    }
+    if ( isset( $db_settings['login_redirect'] ) && $db_settings['login_redirect'] !== '' ) {
+        $config['login_redirect'] = $db_settings['login_redirect'];
+    }
+    // CPTs: if the admin has saved a selection, use it.
+    // An empty array means "none selected" — which is a valid choice.
+    if ( isset( $db_settings['manageable_cpts'] ) && is_array( $db_settings['manageable_cpts'] ) ) {
+        $config['manageable_cpts'] = $db_settings['manageable_cpts'];
+    }
+
+    return $config;
 }
 
 /**
@@ -116,4 +139,50 @@ function cfd_get_no_cache_slugs(): array {
         $config['dashboard_slug'],
         $config['login_slug'],
     );
+}
+
+/**
+ * Detects all custom post types that are candidates for the
+ * client dashboard.
+ *
+ * Returns all public, non-built-in CPTs minus known utility types
+ * from ACF, Bricks, WooCommerce internals, etc.
+ *
+ * Used by the admin settings page to show checkboxes.
+ *
+ * @return array Associative array of [ 'slug' => 'Label' ] pairs.
+ */
+function cfd_detect_available_cpts(): array {
+    $all_cpts = get_post_types( array(
+        'public'   => true,
+        '_builtin' => false,
+    ), 'objects' );
+
+    // Types to always exclude — internal/utility types from
+    // WordPress, ACF, Bricks, and other common plugins.
+    $exclude = array(
+        'attachment', 'revision', 'nav_menu_item', 'custom_css',
+        'customize_changeset', 'oembed_cache', 'user_request',
+        'wp_block', 'wp_template', 'wp_template_part',
+        'wp_global_styles', 'wp_navigation', 'wp_font_family',
+        'wp_font_face',
+        // ACF internal types
+        'acf-field-group', 'acf-field', 'acf-taxonomy',
+        'acf-post-type', 'acf-ui-options-page',
+        // Bricks internal
+        'bricks_template',
+    );
+
+    $detected = array();
+
+    foreach ( $all_cpts as $slug => $cpt_obj ) {
+        if ( in_array( $slug, $exclude, true ) ) {
+            continue;
+        }
+        $detected[ $slug ] = $cpt_obj->labels->name;
+    }
+
+    asort( $detected );
+
+    return $detected;
 }
