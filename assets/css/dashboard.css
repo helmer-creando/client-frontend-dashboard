@@ -176,8 +176,15 @@
 }
 
 .cd-page-card__icon {
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     line-height: 1;
+    color: color-mix(in srgb, var(--primary, #8B7355) 75%, transparent);
+}
+
+.cd-page-card__icon .dashicons {
+    font-size: inherit;
+    width: auto;
+    height: auto;
 }
 
 .cd-page-card__title {
@@ -373,6 +380,9 @@
             color-mix(in srgb, var(--primary-light, #A69279) 50%, #E8DCCB) 100%);
     background-size: 400% 400%;
     -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;

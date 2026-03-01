@@ -416,8 +416,14 @@ function cfd_render_cpt_cards_shortcode(): string
         }
         $manage_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
 
+        // Get the CPT's assigned icon, fallback to a default CPT icon
+        $icon = 'dashicons-admin-post';
+        if (!empty($cpt_obj->menu_icon) && strpos($cpt_obj->menu_icon, 'dashicons-') === 0) {
+            $icon = esc_attr($cpt_obj->menu_icon);
+        }
+
         echo '<a href="' . esc_url($manage_url) . '" class="cd-page-card">';
-        echo '  <span class="cd-page-card__icon">📦</span>';
+        echo '  <span class="cd-page-card__icon"><span class="dashicons ' . $icon . '"></span></span>';
         echo '  <span class="cd-page-card__title">' . esc_html($cpt_obj->labels->name) . '</span>';
         echo '  <span class="cd-page-card__hint">Administrar →</span>';
         echo '</a>';
@@ -547,8 +553,13 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
             }
             $manage_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
 
+            $icon = 'dashicons-admin-post';
+            if (!empty($cpt_obj->menu_icon) && strpos($cpt_obj->menu_icon, 'dashicons-') === 0) {
+                $icon = esc_attr($cpt_obj->menu_icon);
+            }
+
             echo '<a href="' . esc_url($manage_url) . '" class="cd-page-card">';
-            echo '  <span class="cd-page-card__icon">📦</span>';
+            echo '  <span class="cd-page-card__icon"><span class="dashicons ' . $icon . '"></span></span>';
             echo '  <span class="cd-page-card__title">' . esc_html($cpt_obj->labels->name) . '</span>';
             echo '  <span class="cd-page-card__hint">Administrar →</span>';
             echo '</a>';
