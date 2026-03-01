@@ -370,7 +370,7 @@ function cfd_render_page_cards_shortcode(): string
         $edit_url = add_query_arg(array('edit' => 'page', 'id' => $page->ID), $dashboard_url);
 
         echo '<a href="' . esc_url($edit_url) . '" class="cd-page-card">';
-        echo '  <span class="cd-page-card__icon">📄</span>';
+        echo '  <span class="cd-page-card__icon"><span class="dashicons dashicons-admin-page"></span></span>';
         echo '  <span class="cd-page-card__title">' . esc_html($page->post_title) . '</span>';
         echo '  <span class="cd-page-card__hint">Editar →</span>';
         echo '</a>';
@@ -533,7 +533,7 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
         $edit_url = add_query_arg(array('edit' => 'page', 'id' => $page->ID), $dashboard_url);
 
         echo '<a href="' . esc_url($edit_url) . '" class="cd-page-card">';
-        echo '  <span class="cd-page-card__icon">📄</span>';
+        echo '  <span class="cd-page-card__icon"><span class="dashicons dashicons-admin-page"></span></span>';
         echo '  <span class="cd-page-card__title">' . esc_html($page->post_title) . '</span>';
         echo '  <span class="cd-page-card__hint">Editar →</span>';
         echo '</a>';
