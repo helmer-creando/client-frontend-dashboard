@@ -513,10 +513,12 @@ function cfd_client_logo_shortcode($atts)
     $atts = shortcode_atts(array(
         'class' => 'cfd-client-logo',
         'max_width' => '100%',
+        'loading' => 'eager',
     ), $atts, 'cfd_client_logo');
 
     $html = wp_get_attachment_image($logo_id, 'full', false, array(
         'class' => esc_attr($atts['class']),
+        'loading' => esc_attr($atts['loading']),
         'style' => 'height: auto; width: auto; max-width: ' . esc_attr($atts['max_width']) . '; object-fit: contain;',
     ));
 

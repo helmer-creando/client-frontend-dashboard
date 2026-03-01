@@ -560,12 +560,32 @@
     font-size: var(--text-s, 0.9rem);
 }
 
+/* ── Filter toggle accordion ─────────────────────────── */
+/* On desktop: always open, summary hidden.
+   On tablet/mobile (≤991px): collapsible with animated summary. */
+.cd-cpt-filter-toggle {
+    margin-bottom: var(--space-m, 1.5rem);
+}
+
+/* Hide the default disclosure triangle */
+.cd-cpt-filter-toggle>summary {
+    list-style: none;
+}
+
+.cd-cpt-filter-toggle>summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Desktop: hide the summary entirely, always show content */
+.cd-cpt-filter-toggle>summary {
+    display: none;
+}
+
 /* ── CPT toolbar (sort + search) ─────────────────────── */
 .cd-cpt-toolbar {
     display: flex;
     align-items: flex-end;
     gap: var(--space-s, 0.85rem);
-    margin-bottom: var(--space-m, 1.5rem);
     flex-wrap: wrap;
 }
 
@@ -1144,6 +1164,77 @@
 
 /* ── M breakpoint and below ──────────────────────────── */
 @media (max-width: 780px) {
+
+    /* ── Filter accordion: show toggle on tablet/mobile ── */
+    .cd-cpt-filter-toggle {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: var(--radius-s, 8px);
+        overflow: hidden;
+    }
+
+    .cd-cpt-filter-toggle>summary {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.65rem 0.85rem;
+        font-size: var(--text-s, 0.85rem);
+        font-weight: 600;
+        color: var(--text-dark, #2C2825);
+        cursor: pointer;
+        background: var(--white, #fff);
+        user-select: none;
+        -webkit-user-select: none;
+        transition: background 0.2s;
+    }
+
+    .cd-cpt-filter-toggle>summary:hover {
+        background: color-mix(in srgb, var(--primary, #8B7355) 5%, white);
+    }
+
+    .cd-cpt-filter-toggle>summary .dashicons {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: var(--text-dark-muted, #8A817A);
+    }
+
+    /* Chevron arrow */
+    .cd-cpt-filter-toggle__chevron {
+        margin-left: auto;
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-right: 2px solid var(--text-dark-muted, #8A817A);
+        border-bottom: 2px solid var(--text-dark-muted, #8A817A);
+        transform: rotate(45deg);
+        transition: transform 0.25s ease;
+    }
+
+    .cd-cpt-filter-toggle[open]>summary .cd-cpt-filter-toggle__chevron {
+        transform: rotate(-135deg);
+    }
+
+    /* Toolbar inside accordion gets padding */
+    .cd-cpt-filter-toggle .cd-cpt-toolbar {
+        padding: 0.85rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cd-cpt-filter-toggle .cd-cpt-toolbar__group--search {
+        min-width: 100%;
+    }
+
+    .cd-cpt-filter-toggle .cd-cpt-toolbar__submit {
+        align-self: flex-start;
+    }
+
+    /* Start closed on mobile — JS removes open attribute */
+    .cd-cpt-filter-toggle:not([open]) .cd-cpt-toolbar {
+        display: none;
+    }
+
     .cd-dashboard {
         padding: var(--space-s, 1rem) calc(var(--space-xs, 0.55rem) * 0.5);
     }

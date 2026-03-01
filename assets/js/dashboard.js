@@ -210,3 +210,16 @@ document.addEventListener('click', function (e) {
         }
     });
 })();
+
+/* ── Auto-close filter accordion on mobile/tablet ──────
+   The <details> has `open` in markup so desktop always shows
+   content. On ≤780px we remove the attribute on page load so
+   the accordion starts collapsed, saving vertical space.       */
+(function () {
+    if (window.innerWidth > 780) return;
+
+    var toggle = document.querySelector('.cd-cpt-filter-toggle');
+    if (toggle) {
+        toggle.removeAttribute('open');
+    }
+})();

@@ -3,7 +3,7 @@
  * Plugin Name:       Client Frontend Dashboard
  * Plugin URI:        https://autentiweb.com/plugins/client-frontend-dashboard
  * Description:       A grandma-proof frontend dashboard for clients to edit pages, images, and CPT content — without ever touching wp-admin.
- * Version:           3.0.0-beta7
+ * Version:           3.0.0-beta8
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            AutentiWeb
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // ─── Plugin constants ───────────────────────────────────────
-define('CFD_VERSION', '3.0.0-beta7');
+define('CFD_VERSION', '3.0.0-beta8');
 define('CFD_PATH', plugin_dir_path(__FILE__));
 define('CFD_URL', plugin_dir_url(__FILE__));
 

@@ -686,6 +686,13 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     // The form GETs to the same page, preserving ?manage=slug.
     $toolbar_action = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
 
+    // ── Filter accordion wrapper (collapsed on tablet/mobile) ──
+    echo '<details class="cd-cpt-filter-toggle" open>';
+    echo '  <summary class="cd-cpt-filter-toggle__summary">';
+    echo '    <span class="dashicons dashicons-filter"></span> Filtros';
+    echo '    <span class="cd-cpt-filter-toggle__chevron"></span>';
+    echo '  </summary>';
+
     echo '<form method="get" action="' . esc_url($toolbar_action) . '" class="cd-cpt-toolbar">';
     // Preserve the manage param (required for routing).
     echo '  <input type="hidden" name="manage" value="' . esc_attr($cpt_slug) . '">';
@@ -711,6 +718,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     echo '  <button type="submit" class="cd-cpt-toolbar__submit">Filtrar</button>';
     echo '</form>';
+    echo '</details>';
 
     // ── Active search indicator (with clear link) ───────────
     if ($search !== '') {
