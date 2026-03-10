@@ -281,6 +281,31 @@
     flex-wrap: wrap;
 }
 
+/* ── Duplicate button ─────────────────────────────────────
+       Neutral secondary action — not primary, not destructive.
+       Sits next to "Eliminar" in the editor actions bar. */
+.cd-duplicate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--text-xs, 0.75rem);
+    color: var(--text-dark-muted, #8A817A);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.cd-duplicate-btn:hover {
+    color: var(--accent, #A69279);
+}
+
+.cd-duplicate-btn .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+}
+
 /* ── Delete link ──────────────────────────────────────────
        Intentionally low-emphasis: small, muted, no button style.
        Must be the LEAST prominent action on the page.

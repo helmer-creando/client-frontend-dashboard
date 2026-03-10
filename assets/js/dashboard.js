@@ -76,6 +76,19 @@ document.addEventListener('click', function (e) {
     waitForAcf();
 })();
 
+/* ── Duplicate confirmation ─────────────────────────────
+   Intercepts clicks on .cd-duplicate-btn and shows a
+   native confirm() dialog before proceeding. */
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.cd-duplicate-btn');
+    if (btn) {
+        e.preventDefault();
+        if (confirm('¿Crear una copia de este contenido?')) {
+            window.location.href = btn.href;
+        }
+    }
+});
+
 /* ── Delete confirmation toggle ────────────────────────
    Shows inline "¿Segura? Sí / Cancelar" when clicking
    "Eliminar". No browser confirm() dialogs. */
@@ -198,7 +211,7 @@ document.addEventListener('click', function (e) {
         if (window.history && window.history.replaceState) {
             var url = new URL(window.location.href);
             var changed = false;
-            ['updated', 'trashed', 'created'].forEach(function (param) {
+            ['updated', 'trashed', 'created', 'duplicated'].forEach(function (param) {
                 if (url.searchParams.has(param)) {
                     url.searchParams.delete(param);
                     changed = true;

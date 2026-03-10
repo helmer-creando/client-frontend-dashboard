@@ -113,6 +113,86 @@ function cfd_handle_cpt_delete(): void
 }
 
 // ═══════════════════════════════════════════════════════════
+// 2b. HANDLE CPT DUPLICATION
+// ═══════════════════════════════════════════════════════════
+
+add_action('template_redirect', 'cfd_handle_cpt_duplicate');
+
+function cfd_handle_cpt_duplicate(): void
+{
+    $config = cfd_get_config();
+
+    if (!is_page($config['dashboard_slug'])) {
+        return;
+    }
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    $cpt_slug = isset($_GET['duplicate']) ? sanitize_key($_GET['duplicate']) : '';
+    $post_id  = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    $nonce    = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+
+    if ($cpt_slug === '' || $post_id < 1) {
+        return;
+    }
+
+    if (!wp_verify_nonce($nonce, 'cfd_duplicate_' . $post_id)) {
+        return;
+    }
+
+    $original = get_post($post_id);
+    if (!$original || !current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    if (!in_array($original->post_type, $config['manageable_cpts'], true)) {
+        return;
+    }
+
+    // Clone the post.
+    $new_id = wp_insert_post(array(
+        'post_type'   => $original->post_type,
+        'post_title'  => $original->post_title . ' (copia)',
+        'post_status' => 'draft',
+        'post_author' => get_current_user_id(),
+    ));
+
+    if (is_wp_error($new_id)) {
+        return;
+    }
+
+    // Clone all post meta (includes ACF fields).
+    $meta = get_post_meta($post_id);
+    foreach ($meta as $key => $values) {
+        if (str_starts_with($key, '_edit_')) {
+            continue; // Skip edit-lock meta.
+        }
+        foreach ($values as $value) {
+            add_post_meta($new_id, $key, maybe_unserialize($value));
+        }
+    }
+
+    // Clone taxonomies.
+    $taxonomies = get_object_taxonomies($original->post_type);
+    foreach ($taxonomies as $tax) {
+        $terms = wp_get_object_terms($post_id, $tax, array('fields' => 'ids'));
+        if (!is_wp_error($terms) && !empty($terms)) {
+            wp_set_object_terms($new_id, $terms, $tax);
+        }
+    }
+
+    // Redirect to the new post's editor.
+    $redirect_url = add_query_arg(
+        array('edit' => $cpt_slug, 'id' => $new_id, 'duplicated' => 'true'),
+        cfd_get_dashboard_url()
+    );
+
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 3. ENQUEUE ASSETS ON DASHBOARD
 // ═══════════════════════════════════════════════════════════
 
@@ -1029,6 +1109,17 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     echo '  <div class="cd-editor__actions">';
     echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link">Ver entrada ↗</a>';
 
+    // ── Duplicate button ──
+    $duplicate_url = add_query_arg(array(
+        'duplicate' => $cpt_slug,
+        'id'        => $post_id,
+        '_wpnonce'  => wp_create_nonce('cfd_duplicate_' . $post_id),
+    ), $dashboard_url);
+
+    echo '  <a href="' . esc_url($duplicate_url) . '" class="cd-duplicate-btn">';
+    echo '    <span class="dashicons dashicons-admin-page"></span> Duplicar';
+    echo '  </a>';
+
     if (current_user_can('delete_post', $post_id)) {
         // NOTE: nonce action changed from 'cd_trash_' to 'cfd_trash_'
         // to match the verification in cfd_handle_cpt_delete().
@@ -1055,6 +1146,11 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         echo '<div class="cd-success">';
         echo '  <span>Cambios guardados</span>';
         echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link" style="margin-left: 0.5rem;">Ver entrada ↗</a>';
+        echo '</div>';
+    }
+    if (isset($_GET['duplicated']) && $_GET['duplicated'] === 'true') {
+        echo '<div class="cd-success">';
+        echo '  <span>Contenido duplicado. Puedes editarlo a continuación.</span>';
         echo '</div>';
     }
 
