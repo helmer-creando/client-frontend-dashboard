@@ -109,6 +109,27 @@ function cfd_sanitize_settings($input): array
         $clean['client_logo_id'] = absint($input['client_logo_id']);
     }
 
+    // Quick links — repeater array of link objects.
+    if (isset($input['quick_links']) && is_array($input['quick_links'])) {
+        $clean_links = array();
+        foreach ($input['quick_links'] as $link) {
+            if (!is_array($link)) continue;
+            $label = isset($link['label']) ? sanitize_text_field($link['label']) : '';
+            // Skip rows with no label (empty/deleted rows).
+            if ($label === '') continue;
+            $clean_links[] = array(
+                'label'  => $label,
+                'icon'   => isset($link['icon']) ? sanitize_text_field($link['icon']) : 'dashicons-admin-generic',
+                'url'    => isset($link['url']) ? esc_url_raw($link['url']) : '',
+                'hint'   => isset($link['hint']) ? sanitize_text_field($link['hint']) : '',
+                'target' => (isset($link['target']) && $link['target'] === '_self') ? '_self' : '_blank',
+            );
+        }
+        $clean['quick_links'] = $clean_links;
+    } else {
+        $clean['quick_links'] = array();
+    }
+
     // After saving, re-sync role capabilities so the site_editor
     // role gets caps for the newly selected CPTs.
     // We do this by bumping the caps version.
@@ -477,6 +498,98 @@ function cfd_render_settings_page(): void
             <?php
     endif; ?>
 
+            <!-- ── Quick Access Links ─────────────────────────── -->
+            <h2>Enlaces rápidos (Herramientas)</h2>
+            <p>
+                Add shortcut cards to the dashboard home that link to external plugin pages
+                (e.g., FluentCRM, WooCommerce, Bookly). Each link appears as a card in a
+                &ldquo;Herramientas&rdquo; section below the CPT cards.
+            </p>
+
+            <?php
+                $quick_links = isset($db_settings['quick_links']) && is_array($db_settings['quick_links'])
+                    ? $db_settings['quick_links']
+                    : array();
+            ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">Links</th>
+                    <td>
+                        <div id="cfd-quick-links-repeater">
+                            <?php foreach ($quick_links as $i => $link): ?>
+                            <fieldset class="cfd-ql-row" style="border: 1px solid #ccd0d4; padding: 12px 14px; margin-bottom: 10px; border-radius: 4px; background: #f9f9f9;">
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                                    <label style="flex: 1 1 160px;">
+                                        <span style="display:block; font-weight:600; margin-bottom:2px;">Label</span>
+                                        <input type="text" name="cfd_settings[quick_links][<?php echo $i; ?>][label]" value="<?php echo esc_attr($link['label'] ?? ''); ?>" class="regular-text" placeholder="Emails automáticos" />
+                                    </label>
+                                    <label style="flex: 1 1 160px;">
+                                        <span style="display:block; font-weight:600; margin-bottom:2px;">Icon <small style="font-weight:normal; color:#888;">(dashicons class)</small></span>
+                                        <input type="text" name="cfd_settings[quick_links][<?php echo $i; ?>][icon]" value="<?php echo esc_attr($link['icon'] ?? 'dashicons-admin-generic'); ?>" class="regular-text" placeholder="dashicons-email-alt" />
+                                    </label>
+                                    <label style="flex: 2 1 240px;">
+                                        <span style="display:block; font-weight:600; margin-bottom:2px;">URL</span>
+                                        <input type="url" name="cfd_settings[quick_links][<?php echo $i; ?>][url]" value="<?php echo esc_attr($link['url'] ?? ''); ?>" class="regular-text" style="width:100%;" placeholder="/wp-admin/admin.php?page=fluent-crm" />
+                                    </label>
+                                    <label style="flex: 1 1 160px;">
+                                        <span style="display:block; font-weight:600; margin-bottom:2px;">Hint <small style="font-weight:normal; color:#888;">(optional)</small></span>
+                                        <input type="text" name="cfd_settings[quick_links][<?php echo $i; ?>][hint]" value="<?php echo esc_attr($link['hint'] ?? ''); ?>" class="regular-text" placeholder="Editar emails de bienvenida" />
+                                    </label>
+                                    <label style="flex: 0 0 120px;">
+                                        <span style="display:block; font-weight:600; margin-bottom:2px;">Target</span>
+                                        <select name="cfd_settings[quick_links][<?php echo $i; ?>][target]">
+                                            <option value="_blank" <?php selected(($link['target'] ?? '_blank'), '_blank'); ?>>New tab</option>
+                                            <option value="_self" <?php selected(($link['target'] ?? '_blank'), '_self'); ?>>Same tab</option>
+                                        </select>
+                                    </label>
+                                    <button type="button" class="button cfd-ql-remove" style="color: #a00; flex: 0 0 auto;">✕ Remove</button>
+                                </div>
+                            </fieldset>
+                            <?php endforeach; ?>
+                        </div>
+                        <button type="button" class="button" id="cfd-ql-add">+ Add Link</button>
+                        <p class="description" style="margin-top: 8px;">
+                            URLs can be absolute (<code>https://…</code>) or relative wp-admin paths
+                            (<code>/wp-admin/admin.php?page=…</code>). Leave Hint empty to show &ldquo;Abrir &rarr;&rdquo; by default.
+                            <br><a href="https://developer.wordpress.org/resource/dashicons/" target="_blank" rel="noopener">Browse Dashicons &rarr;</a>
+                        </p>
+
+                        <script>
+                        jQuery(function($) {
+                            var $repeater = $('#cfd-quick-links-repeater');
+                            var rowIndex = $repeater.find('.cfd-ql-row').length;
+
+                            // Add a new empty row.
+                            $('#cfd-ql-add').on('click', function() {
+                                var i = rowIndex++;
+                                var html = '<fieldset class="cfd-ql-row" style="border: 1px solid #ccd0d4; padding: 12px 14px; margin-bottom: 10px; border-radius: 4px; background: #f9f9f9;">'
+                                    + '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">'
+                                    + '<label style="flex: 1 1 160px;"><span style="display:block; font-weight:600; margin-bottom:2px;">Label</span>'
+                                    + '<input type="text" name="cfd_settings[quick_links][' + i + '][label]" value="" class="regular-text" placeholder="Emails automáticos" /></label>'
+                                    + '<label style="flex: 1 1 160px;"><span style="display:block; font-weight:600; margin-bottom:2px;">Icon <small style="font-weight:normal; color:#888;">(dashicons class)</small></span>'
+                                    + '<input type="text" name="cfd_settings[quick_links][' + i + '][icon]" value="dashicons-admin-generic" class="regular-text" placeholder="dashicons-email-alt" /></label>'
+                                    + '<label style="flex: 2 1 240px;"><span style="display:block; font-weight:600; margin-bottom:2px;">URL</span>'
+                                    + '<input type="url" name="cfd_settings[quick_links][' + i + '][url]" value="" class="regular-text" style="width:100%;" placeholder="/wp-admin/admin.php?page=fluent-crm" /></label>'
+                                    + '<label style="flex: 1 1 160px;"><span style="display:block; font-weight:600; margin-bottom:2px;">Hint <small style="font-weight:normal; color:#888;">(optional)</small></span>'
+                                    + '<input type="text" name="cfd_settings[quick_links][' + i + '][hint]" value="" class="regular-text" placeholder="Editar emails de bienvenida" /></label>'
+                                    + '<label style="flex: 0 0 120px;"><span style="display:block; font-weight:600; margin-bottom:2px;">Target</span>'
+                                    + '<select name="cfd_settings[quick_links][' + i + '][target]"><option value="_blank">New tab</option><option value="_self">Same tab</option></select></label>'
+                                    + '<button type="button" class="button cfd-ql-remove" style="color: #a00; flex: 0 0 auto;">✕ Remove</button>'
+                                    + '</div></fieldset>';
+                                $repeater.append(html);
+                            });
+
+                            // Remove a row.
+                            $repeater.on('click', '.cfd-ql-remove', function() {
+                                $(this).closest('.cfd-ql-row').remove();
+                            });
+                        });
+                        </script>
+                    </td>
+                </tr>
+            </table>
+
             <!-- ── Role Status ─────────────────────────────── -->
             <h2>Role Status</h2>
             <table class="form-table" role="presentation">
@@ -554,6 +667,10 @@ function cfd_render_settings_page(): void
                 <tr>
                     <td><code>[cfd_view_router]</code></td>
                     <td>Renders edit/manage/create views (non-home views)</td>
+                </tr>
+                <tr>
+                    <td><code>[cfd_quick_links]</code></td>
+                    <td>Renders quick access link cards (from Settings &rarr; Enlaces r&aacute;pidos)</td>
                 </tr>
                 <tr>
                     <td><code>[cfd_sidebar_nav]</code></td>

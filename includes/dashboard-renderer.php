@@ -442,6 +442,63 @@ function cfd_render_cpt_cards_shortcode(): string
 }
 
 /**
+ * [cfd_quick_links] — Renders the Quick Access Links card grid.
+ *
+ * Outputs admin-configured shortcut cards that link to external
+ * plugin pages (FluentCRM, WooCommerce, Bookly, etc.). Only renders
+ * if quick links have been configured in Settings.
+ *
+ * Usage in Bricks: Add a Shortcode element with [cfd_quick_links]
+ * inside the "Home View" conditional section, after CPT cards.
+ */
+add_shortcode('cfd_quick_links', 'cfd_render_quick_links_shortcode');
+
+function cfd_render_quick_links_shortcode(): string
+{
+    if (!is_user_logged_in()) {
+        return '';
+    }
+
+    $settings = get_option('cfd_settings', array());
+    $links = isset($settings['quick_links']) ? $settings['quick_links'] : array();
+    if (empty($links)) {
+        return '';
+    }
+
+    // Ensure Dashicons are available on the frontend.
+    wp_enqueue_style('dashicons');
+
+    ob_start();
+
+    echo '<div class="cd-section">';
+    echo '<h2 class="cd-home__title"><span>Herramientas</span></h2>';
+    echo '<div class="cd-page-grid">';
+
+    foreach ($links as $link) {
+        $url   = esc_url($link['url'] ?? '');
+        $label = esc_html($link['label'] ?? '');
+        $icon  = esc_attr($link['icon'] ?? 'dashicons-admin-generic');
+        $hint  = esc_html(($link['hint'] ?? '') !== '' ? $link['hint'] : 'Abrir →');
+
+        $target_attr = '';
+        if (($link['target'] ?? '_blank') === '_blank') {
+            $target_attr = ' target="_blank" rel="noopener noreferrer"';
+        }
+
+        echo '<a href="' . $url . '" class="cd-page-card"' . $target_attr . '>';
+        echo '  <span class="cd-page-card__icon"><span class="dashicons ' . $icon . '"></span></span>';
+        echo '  <span class="cd-page-card__title">' . $label . '</span>';
+        echo '  <span class="cd-page-card__hint">' . $hint . '</span>';
+        echo '</a>';
+    }
+
+    echo '</div>';
+    echo '</div>';
+
+    return ob_get_clean();
+}
+
+/**
  * [cfd_view_router] — Renders non-home dashboard views.
  *
  * When edit/manage/create URL params are present, this shortcode
@@ -629,6 +686,14 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
             echo '</a>';
         }
 
+        echo '</div>';
+    }
+
+    // ── Quick Access Links (only if configured) ──
+    $quick_links_html = cfd_render_quick_links_shortcode();
+    if ($quick_links_html !== '') {
+        echo '<div style="margin-top: var(--space-l, 2rem);">';
+        echo $quick_links_html;
         echo '</div>';
     }
 
