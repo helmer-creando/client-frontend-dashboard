@@ -2,10 +2,10 @@
 
 ## What This Is
 
-A WordPress plugin called **Client Frontend Dashboard** that gives non-technical clients a beautiful, self-contained frontend dashboard to edit their pages, images, and CPT content — without ever touching wp-admin. Built for wellness/therapy/holistic sites.
+A WordPress plugin called **Client Frontend Dashboard** that gives non-technical clients a beautiful, self-contained frontend dashboard to edit pages, images, and CPT content — without ever touching wp-admin. Built for wellness/therapy/holistic sites.
 
 **Live staging site:** `blueprint.co-creador.com`
-**Plugin version:** 2.2.2
+**Plugin version:** 3.0.0
 **Author:** AutentiWeb (https://autentiweb.com)
 **GitHub repo:** https://github.com/helmer-creando/client-frontend-dashboard (public)
 
@@ -33,6 +33,24 @@ A WordPress plugin called **Client Frontend Dashboard** that gives non-technical
 
 ---
 
+## v3.0 Architecture: The Hybrid Approach
+
+The biggest change in v3.0 is moving away from the plugin dictating the entire HTML wrapper. We adopted a **Hybrid Approach**:
+- **Bricks Builder:** Handles high-level layout, Chrome (sidebar container, main content area, mobile offcanvas), typography, and global CSS via ACSS.
+- **CFD Plugin:** Handles backend logic, user sessions, database queries, and outputs the "meat" of the UI (post grids, forms, modals) via composable shortcodes.
+
+### Core Composable Shortcodes (v3.0)
+Instead of one massive `[client_dashboard]` shortcode, layout is now handled by Bricks dropping these pieces:
+- `[cfd_sidebar_nav]` — Dynamic sidebar nav (Inicio + manageable CPTs with Dashicons). Also available as a Bricks Query Loop (`CFD Sidebar Nav` type).
+- `[cfd_view_router]` — Main content area, dynamically loads Dashboard Home, CPT List, CPT Editor, or CPT Creator based on URL params (`?manage=`, `?edit=`, `?create=`).
+- `[cfd_client_logo max_width="150px"]` — Renders the custom client logo uploaded via the CFD settings page.
+- `[cd_login_form]` — Smart login/lost-password/reset-password form.
+- `[cd_logout_url]` — Outputs the logout URL for Bricks link fields.
+
+> The original `[client_dashboard]` shortcode is kept for backward compatibility.
+
+---
+
 ## Plugin Architecture
 
 ```
@@ -40,51 +58,33 @@ client-frontend-dashboard/
 ├── client-frontend-dashboard.php    ← Bootstrap: constants, auto-updater, requires, hooks
 ├── plugin-update-checker/           ← YahnisElsts v5.6 library (GitHub Releases auto-updates)
 ├── includes/
-│   ├── config.php                   ← Centralized config, DB merge, CPT detection, helpers
+│   ├── config.php                   ← Config, DB merge, CPT detection, helpers, Bricks dynamic tags
 │   ├── roles-and-access.php         ← site_editor role, redirects, admin lockout, caching
-│   ├── dashboard-renderer.php       ← [client_dashboard] shortcode, ACF form CRUD, filtering/pagination
+│   ├── dashboard-renderer.php       ← Shortcodes, ACF form CRUD, filtering/pagination, composable renderer
 │   ├── login.php                    ← [cd_login_form] shortcode, auth handler, logout, password reset
 │   ├── styles.php                   ← Enqueues dashboard.css (just the loader)
-│   └── admin-settings.php           ← Settings → Client Dashboard (CPT toggles, slugs)
-└── assets/
-    ├── css/
-    │   ├── dashboard.css            ← ~1100+ lines, full dashboard styling with ACSS vars
-    │   └── login.css                ← 421 lines, login page + glassmorphism + mesh gradient
-    └── js/
-        └── dashboard.js             ← 99 lines, auto-grow textareas, delete confirm, card handlers
+│   └── admin-settings.php           ← Settings → Client Dashboard (CPT toggles, slugs, logo upload)
+├── assets/
+│   ├── css/
+│   │   ├── dashboard.css            ← ~1500+ lines, full dashboard styling with ACSS vars, BEM naming
+│   │   └── login.css                ← 421 lines, login page + glassmorphism + mesh gradient
+│   └── js/
+│       └── dashboard.js             ← Auto-grow textareas, delete confirm, card handlers, modal auto-dismiss, filter accordion
+└── docs/                            ← Developer documentation (see below)
 ```
 
-### Origin Story
-
-The plugin was migrated from 4 WPCodeBox2 snippets (total ~3,000 lines):
-- **Snippet 1** (302 lines) → `roles-and-access.php` — Role, redirects, admin lockout
-- **Snippet 2** (794 lines) → `dashboard-renderer.php` + `dashboard.js` — ACF form renderer
-- **Snippet 3** (1,066 lines) → `dashboard.css` — All dashboard styles
-- **Snippet 4** (890 lines) → `login.php` + `login.css` — Custom login page
-
-Original snippet export is available as `snippet-export-2026-02-28t030239729z.json`.
+### Key Helper Functions (config.php)
+- `cfd_get_config()` — Merged config with static caching
+- `cfd_is_bricks_builder()` — Shared Bricks editor detection (4 methods)
+- `cfd_get_no_cache_slugs()` — Returns dashboard + login slugs for cache exclusion
+- `cfd_detect_available_cpts()` — Finds all public non-built-in CPTs (used by settings page)
+- `CFD_POSTS_PER_PAGE` — Constant (default: 20) for pagination
 
 ---
 
-## How It Works
+## URL Routing
 
-### User Flow
-1. Client visits `/capitan/` (login page) → sees glassmorphism login card
-2. Submits credentials → `cfd_handle_login_post()` authenticates via `wp_signon()` on the page itself (NOT wp-login.php)
-3. Redirected to `/mi-espacio/` (dashboard) → sees editable pages + CPT cards
-4. Clicks a page → ACF form renders with that page's fields
-5. Clicks a CPT → sees list with sort/search toolbar + pagination → can create/edit/delete entries
-6. Clicks logout → redirected back to `/capitan/`
-
-### Key Shortcodes
-| Shortcode | Where | What it does |
-|-----------|-------|--------------|
-| `[client_dashboard]` | Dashboard page | Renders full dashboard (page list, CPT list, editors) |
-| `[cd_login_form]` | Login page | Smart form: login / lost password / reset password |
-| `[cd_login_error]` | Login page | Error/success messages |
-| `[cd_logout_url]` | Any template | Outputs the logout URL for Bricks link fields |
-
-### URL Routing (dashboard)
+### Dashboard
 - `/mi-espacio/` → Dashboard home (page cards + CPT cards)
 - `/mi-espacio/?edit=page&id=12` → Edit page 12
 - `/mi-espacio/?manage=retreats` → List retreats (with filtering/pagination)
@@ -92,7 +92,7 @@ Original snippet export is available as `snippet-export-2026-02-28t030239729z.js
 - `/mi-espacio/?edit=retreats&id=45` → Edit retreat 45
 - `/mi-espacio/?create=retreats` → New retreat
 
-### URL Routing (login)
+### Login
 - `/capitan/` → Login form
 - `/capitan/?action=lostpassword` → Password reset email form
 - `/capitan/?action=rp&key=...&login=...` → Set new password form
@@ -100,52 +100,27 @@ Original snippet export is available as `snippet-export-2026-02-28t030239729z.js
 
 ---
 
-## Configuration
+## Bricks Template Structure (v3.0)
 
-### Hybrid Config System
-`config.php` has hardcoded defaults that work out of the box. The admin settings page (Settings → Client Dashboard) saves overrides to `wp_options` as `cfd_settings`. The `cfd_get_config()` function merges both, with DB values taking priority. Results are cached per-request via a static variable.
+### Desktop Layout
+- **Dashboard Layout** (Section) → flex row
+  - **Sidebar** (Div, `#brxe-qpknaz`) — Sticky, 260px, contains logo + `[cfd_sidebar_nav]` + Logout link
+  - **Main Content Area** (Div) → contains `[cfd_view_router]`
 
-### Per-Site Defaults (in config.php)
-```php
-'dashboard_slug'  => 'mi-espacio',
-'login_slug'      => 'capitan',
-'login_redirect'  => '/mi-espacio/',
-'editable_pages'  => array(),  // empty = auto-detect pages with ACF field groups
-'manageable_cpts' => array( 'retreats', 'testimonials', 'faq' ),
-```
+### Mobile Layout
+- Original Sidebar: `display: none` at ≤991px breakpoint
+- **Offcanvas** (Bricks native) — duplicated sidebar content, triggered by hamburger toggle
+- **Hamburger toggle** (`.cfd-mobile-toggle`) — `display: none` on desktop, `display: flex` at ≤991px
 
-### Helper Functions in config.php
-- `cfd_get_config()` — Merged config with static caching
-- `cfd_is_bricks_builder()` — Shared Bricks editor detection (4 methods)
-- `cfd_get_no_cache_slugs()` — Returns dashboard + login slugs for cache exclusion
-- `cfd_detect_available_cpts()` — Finds all public non-built-in CPTs (used by settings page)
-- `CFD_POSTS_PER_PAGE` — Constant (default: 20) for pagination
-
-### Admin Settings Page
-Located at Settings → Client Dashboard. Provides:
-- Slug configuration (dashboard, login, redirect path)
-- CPT toggle checkboxes (auto-detects all public non-built-in CPTs)
-- Role status display
-- Shortcode reference
-
-Saving auto-syncs `site_editor` role capabilities.
-
----
-
-## Auto-Update System
-
-Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
-- Compares GitHub release tags (e.g., `v2.2.2`) against the plugin's `Version` header
-- No GitHub token needed (repo is public)
-- WordPress shows native update notices when a new release exists
-- Wrapped in try-catch so a library error can never crash the site
-- Parsedown calls guarded with `class_exists()` to prevent conflicts with Perfmatters' bundled copy
-
-### Release Workflow
-1. Bump version in `client-frontend-dashboard.php` (both header and `CFD_VERSION` constant)
-2. Commit and push via GitHub Desktop
-3. Create GitHub release with tag `vX.X.X`
-4. WordPress will detect the update automatically
+### Dynamic Data Tags (Bricks)
+| Tag | Output |
+|---|---|
+| `{cfd_nav_label}` | Display name (e.g., "Retreats") |
+| `{cfd_nav_url}` | Full URL (e.g., `/mi-espacio/?manage=retreats`) |
+| `{cfd_nav_icon}` | Dashicon CSS class (e.g., `dashicons dashicons-calendar`) |
+| `{cfd_nav_active_class}` | `is-active` or empty |
+| `{cfd_client_logo}` | Client logo image URL |
+| `{cfd_logout_url}` | Logout URL |
 
 ---
 
@@ -162,51 +137,30 @@ Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
 
 ---
 
-## Issues Fixed During Development
+## Auto-Update System
 
-### 1. Login form not authenticating (FIXED in v2.0.1)
-**Cause:** `wp_login_form()` posts to `wp-login.php`. Bricks' "Custom Login URL" feature blocks that endpoint.
-**Fix:** Custom form that posts to `/capitan/` itself. `cfd_handle_login_post()` on `template_redirect` calls `wp_signon()` directly.
-**Important:** Bricks Custom Login URL setting must be **DISABLED** — the plugin handles all login routing itself.
+Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
+- Compares GitHub release tags (e.g., `v3.0.0`) against the plugin's `Version` header
+- `enablePreReleaseCheck()` enabled — beta tags are detected too
+- No GitHub token needed (repo is public)
+- Wrapped in try-catch so a library error can never crash the site
+- Parsedown calls guarded with `class_exists()` to prevent conflicts with Perfmatters' bundled copy
 
-### 2. Logout not working (FIXED in v2.1.0)
-**Cause:** Logout button in Bricks pointed to `wp-login.php?action=logout` (blocked by Bricks). Even with `[cd_logout_url]`, nonce got baked into LiteSpeed-cached HTML and went stale.
-**Fix:** Nonce-free logout via `/capitan/?action=logout`. Handler on `init` hook (fires before LiteSpeed). Safe because logout is non-destructive.
-
-### 3. LiteSpeed caching login page (PARTIALLY FIXED)
-**Cause:** LiteSpeed server cache serves pages before WordPress hooks fire.
-**Fix:** Added `init`-level `DONOTCACHEPAGE` definition via URI matching. May need LiteSpeed exclusion rule as belt-and-suspenders.
-
-### 4. delete_others_posts in base role (FIXED in v2.0.0)
-**Cause:** Original snippet granted `delete_others_posts` to the base role — allowed deleting any blog post.
-**Fix:** Removed from base role. CPT-specific delete caps granted separately.
-
-### 5. 24 DB writes per page load (FIXED in v2.0.0)
-**Cause:** Original called `$role->add_cap()` in a loop on every request (3 CPTs × 8 caps).
-**Fix:** Version-flagged sync — only writes when CPT config changes.
-
-### 6. Update checker Parsedown crash (FIXED in v2.2.2)
-**Cause:** `Parsedown::instance()` in plugin-update-checker crashed when Perfmatters' bundled copy of the library conflicted. `PMCS` prefix in error log confirmed Perfmatters was catching the error.
-**Fix:** Guarded both Parsedown calls with `class_exists('Parsedown')` (in `GitHubApi.php` and `Api.php`). Also wrapped entire update checker init in try-catch. Removed `setBranch('main')` to use GitHub Releases mode instead of branch mode.
-
-### 7. Admin settings page missing after deploy (FIXED in v2.2.1)
-**Cause:** `admin-settings.php` existed on the server but was never committed to Git. When user uploaded the GitHub zip, the file was lost. Also, `config.php` in Git lacked the DB merge logic the server version had.
-**Fix:** Restored `admin-settings.php`, merged `config.php` with DB merge logic + `cfd_detect_available_cpts()`, wired settings page into bootstrap with `is_admin()` guard.
+### Release Workflow
+1. Bump version in `client-frontend-dashboard.php` (both header and `CFD_VERSION` constant)
+2. Commit and push
+3. Create GitHub release with tag `vX.X.X`
+4. WordPress will detect the update automatically
 
 ---
 
-## Known Issues / TODO
+## CSS Conventions
 
-### Bugs to Investigate
-- [ ] **LiteSpeed cache on login page** — `DONOTCACHEPAGE` on `init` should work, but may need a LiteSpeed-specific exclusion rule in `.htaccess` or LSCWP settings. Test after purging cache post-update.
-
-### Features Planned
-- [ ] **Bricks layout integration (v3.0)** — Move layout/chrome into Bricks templates, keep ACF form rendering in plugin. Best of both worlds. Deferred from v2.2.
-
-### Code Quality Items
-- [ ] Debug mode in `cfd_render_dashboard_home()` uses `WP_DEBUG` constant — should verify this works correctly
-- [ ] Login mesh gradient (3 rotating 200%×200% conic gradients + blur(80px)) is GPU-intensive — test on older iPads
-- [ ] Repeated `get_page_by_path()` calls are cached in `cfd_get_dashboard_url()` but the static var resets per request — consider transient for heavier pages
+- **BEM naming:** `.cd-page-card__icon`, `.cd-cpt-toolbar__search`, etc.
+- **Prefix:** All CSS classes use `cd-` prefix (legacy from original snippets, kept for consistency)
+- **ACSS variables:** All spacing, colors, typography reference ACSS vars with fallbacks: `var(--space-m, 1.5rem)`, `var(--radius-l, 14px)`, `var(--text-color, #2C2825)`
+- **Dashicons:** CPT and Page cards use native WordPress Dashicons (`dashicons-admin-page`, `dashicons-calendar`, etc.), dynamically read from `$cpt_obj->menu_icon`
+- **PHP function prefix:** `cfd_`
 
 ---
 
@@ -217,29 +171,23 @@ Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
 | **2.0.0** | Initial plugin release (migrated from 4 WPCodeBox snippets) |
 | **2.0.1** | Fixed login form authentication |
 | **2.1.0** | Fixed logout, nonce-free logout handler |
-| **2.2.0** | CPT filtering/sorting/pagination, removed WP Code Snippets refs, Bricks helper, author update |
-| **2.2.1** | Restored admin settings page, DB config merge, update checker try-catch |
-| **2.2.2** | Parsedown class_exists guard, version bump for clean release |
+| **2.2.0** | CPT filtering/sorting/pagination, Bricks helper, author update |
+| **2.2.1** | Restored admin settings page, DB config merge |
+| **2.2.2** | Parsedown class_exists guard |
+| **3.0.0-beta1–beta9** | Full v3 refactor: composable shortcodes, Bricks integration, modal rewrite, filter accordion, logo upload, dynamic tags, Dashicon cards |
+| **3.0.0** | Stable release — hybrid Bricks + Plugin architecture |
 
 ---
 
-## Git Repository
+## Known Issues / TODO
 
-**GitHub:** https://github.com/helmer-creando/client-frontend-dashboard (public)
-**Local path:** `/Volumes/Ikigai/#HelpingOthers/AutentiWeb/dev/client-frontend-dashboard`
-**License:** GPL-2.0-or-later
-
-The developer uses GitHub Desktop (visual, no terminal). Current workflow:
-- Commit after each working change
-- Descriptive commit messages
-- No branching yet — single `main` branch
-- Releases created via GitHub web UI → auto-updater detects them
+- [ ] **LiteSpeed cache on login page** — May need a LiteSpeed-specific exclusion rule
+- [ ] Login mesh gradient (3 rotating conic gradients + blur) — test on older iPads
+- [ ] Consider transient caching for `get_page_by_path()` calls in heavy pages
 
 ---
 
-## System Prompt for Claude Code
-
-When working on this project, use this as your guiding context:
+## System Prompt for AI Assistants
 
 ```
 You are a calm, experienced senior WordPress developer doing pair-programming.
@@ -260,4 +208,14 @@ Rules:
 - The client site is in Spanish — all user-facing strings should be in Spanish.
 - All functions are prefixed cfd_ (plugin text domain).
 - CSS classes use the cd- prefix (legacy from the original snippets, kept for consistency).
+- v3.0 uses a Hybrid approach: Bricks handles layout chrome, plugin handles functional UI.
+- Never hardcode global layout HTML into the plugin if Bricks can handle it.
 ```
+
+---
+
+## Git Repository
+
+**GitHub:** https://github.com/helmer-creando/client-frontend-dashboard (public)
+**Local path:** `/Volumes/Ikigai/#HelpingOthers/AutentiWeb/dev/client-frontend-dashboard`
+**License:** GPL-2.0-or-later

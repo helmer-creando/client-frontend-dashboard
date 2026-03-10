@@ -83,6 +83,27 @@ function cfd_sanitize_settings($input): array
         $clean['manageable_cpts'] = array();
     }
 
+    // Accent color source — ACSS palette name or 'custom'.
+    $valid_sources = array( '', 'primary', 'secondary', 'accent', 'custom' );
+    if (isset($input['accent_source'])) {
+        $source = sanitize_key($input['accent_source']);
+        $clean['accent_source'] = in_array($source, $valid_sources, true) ? $source : '';
+    }
+
+    // Accent color — hex string (only used when accent_source = 'custom').
+    if (isset($input['accent_color'])) {
+        $color = sanitize_hex_color($input['accent_color']);
+        $clean['accent_color'] = $color ? $color : '';
+    }
+
+    // Welcome message — plain text string.
+    if (isset($input['welcome_message'])) {
+        $clean['welcome_message'] = sanitize_text_field($input['welcome_message']);
+    }
+
+    // Show help hints — checkbox (boolean).
+    $clean['show_hints'] = !empty($input['show_hints']);
+
     // Client logo — attachment ID.
     if (isset($input['client_logo_id'])) {
         $clean['client_logo_id'] = absint($input['client_logo_id']);
@@ -268,6 +289,143 @@ function cfd_render_settings_page(): void
                             bindRemove();
                         });
                         </script>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ── Accent Color ──────────────────────────── -->
+            <h2>Accent Color</h2>
+            <p>
+                Controls the dashboard&rsquo;s color scheme. Map it to an
+                <strong>Automatic.CSS</strong> palette so it stays in sync with
+                your site&rsquo;s design tokens, or pick a custom hex.
+            </p>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="cfd_accent_source">Color de acento</label>
+                    </th>
+                    <td>
+                        <?php
+    $accent_source = isset($db_settings['accent_source']) ? $db_settings['accent_source'] : '';
+    $accent_color  = isset($db_settings['accent_color'])  ? $db_settings['accent_color']  : '';
+?>
+                        <select id="cfd_accent_source" name="cfd_settings[accent_source]">
+                            <option value=""         <?php selected($accent_source, ''); ?>>
+                                Default (stylesheet)
+                            </option>
+                            <option value="primary"  <?php selected($accent_source, 'primary'); ?>>
+                                ACSS &mdash; Primary
+                            </option>
+                            <option value="secondary" <?php selected($accent_source, 'secondary'); ?>>
+                                ACSS &mdash; Secondary
+                            </option>
+                            <option value="accent"   <?php selected($accent_source, 'accent'); ?>>
+                                ACSS &mdash; Accent
+                            </option>
+                            <option value="custom"   <?php selected($accent_source, 'custom'); ?>>
+                                Custom color&hellip;
+                            </option>
+                        </select>
+
+                        <span id="cfd-accent-picker-wrap" style="margin-left: 8px;<?php echo $accent_source !== 'custom' ? ' display:none;' : ''; ?>">
+                            <input
+                                type="color"
+                                id="cfd_accent_color"
+                                value="<?php echo esc_attr($accent_color ?: '#A69279'); ?>"
+                            />
+                            <input
+                                type="hidden"
+                                id="cfd_accent_color_value"
+                                name="cfd_settings[accent_color]"
+                                value="<?php echo esc_attr($accent_color); ?>"
+                            />
+                        </span>
+
+                        <p class="description" style="margin-top: 8px;">
+                            <strong>ACSS palettes</strong> remap the full shade family
+                            (<code>--primary</code>, <code>-dark</code>, <code>-light</code>,
+                            <code>-trans</code>) so buttons, hovers, and gradients
+                            stay consistent. Changes in ACSS automatically update the dashboard.<br>
+                            <strong>Custom</strong> overrides <code>--accent</code> and
+                            <code>--primary</code> with a single hex value.
+                        </p>
+
+                        <script>
+                        jQuery(function($) {
+                            var $source = $('#cfd_accent_source');
+                            var $pickerWrap = $('#cfd-accent-picker-wrap');
+                            var $picker = $('#cfd_accent_color');
+                            var $hidden = $('#cfd_accent_color_value');
+
+                            // Show/hide the color picker based on dropdown.
+                            $source.on('change', function() {
+                                if ($(this).val() === 'custom') {
+                                    $pickerWrap.show();
+                                    // If no custom color was set yet, seed the hidden input.
+                                    if (!$hidden.val()) {
+                                        $hidden.val($picker.val());
+                                    }
+                                } else {
+                                    $pickerWrap.hide();
+                                }
+                            });
+
+                            // Sync color picker to hidden input.
+                            $picker.on('input', function() {
+                                $hidden.val($(this).val());
+                            });
+                        });
+                        </script>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ── Welcome & Help Hints ────────────────────── -->
+            <h2>Welcome &amp; Help Hints</h2>
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">
+                        <label for="cfd_welcome_message">Mensaje de bienvenida</label>
+                    </th>
+                    <td>
+                        <?php
+    $welcome_message = isset($db_settings['welcome_message'])
+        ? $db_settings['welcome_message']
+        : 'Aquí puedes gestionar el contenido de tu sitio web.';
+?>
+                        <input
+                            type="text"
+                            id="cfd_welcome_message"
+                            name="cfd_settings[welcome_message]"
+                            value="<?php echo esc_attr($welcome_message); ?>"
+                            class="large-text"
+                        />
+                        <p class="description">
+                            Subtitle shown below the greeting on the dashboard home.
+                            Default: <code>Aquí puedes gestionar el contenido de tu sitio web.</code>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Mostrar mensajes de ayuda</th>
+                    <td>
+                        <?php
+    $show_hints = isset($db_settings['show_hints']) ? (bool) $db_settings['show_hints'] : true;
+?>
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="cfd_settings[show_hints]"
+                                value="1"
+                                <?php checked($show_hints); ?>
+                            />
+                            Show contextual help hints on editor and list views
+                        </label>
+                        <p class="description">
+                            Small hint text below view titles that helps clients understand
+                            what each screen does. Disable for experienced clients.
+                        </p>
                     </td>
                 </tr>
             </table>

@@ -94,6 +94,13 @@
     margin-bottom: 0.3rem;
 }
 
+.cd-hero__subtitle {
+    font-size: var(--text-s, 0.875rem);
+    color: var(--text-dark-muted, #8A817A);
+    font-weight: 300;
+    margin: 0.25rem 0 0;
+}
+
 .cd-hero__sub {
     font-size: var(--text-m, 0.95rem);
     color: var(--text-dark-muted, #8A817A);
@@ -254,6 +261,15 @@
     color: var(--text-dark-muted, #A09890);
     font-weight: 300;
     margin-bottom: var(--space-s, 1rem);
+    line-height: 1.5;
+}
+
+/* ── View hint (contextual help) ─────────────────────── */
+.cd-view-hint {
+    font-size: var(--text-s, 0.875rem);
+    color: var(--text-dark-muted, #8A817A);
+    font-weight: 300;
+    margin: 0 0 var(--space-s, 1rem);
     line-height: 1.5;
 }
 
@@ -539,8 +555,20 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
+.cd-cpt-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
 .cd-cpt-card__title {
     font-weight: 500;
+}
+
+.cd-cpt-card__meta {
+    font-size: var(--text-xs, 0.78rem);
+    color: var(--text-dark-muted, #8A817A);
 }
 
 .cd-cpt-card__actions {
@@ -1006,14 +1034,27 @@
     transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
+/* Tighter padding once an image is uploaded */
+.cd-acf-form .acf-image-uploader.has-value {
+    padding: var(--space-s, 0.75rem) !important;
+}
+
 .cd-acf-form .acf-image-uploader:hover {
     border-color: var(--accent, #A69279) !important;
     background: color-mix(in srgb, var(--accent, #A69279) 2%, #FDFCFA) !important;
 }
 
-/* Image preview inside uploader */
+/* Image preview inside uploader — centered, constrained */
+.cd-acf-form .acf-image-uploader .image-wrap {
+    display: flex !important;
+    justify-content: center !important;
+}
+
 .cd-acf-form .acf-image-uploader .image-wrap img {
     border-radius: var(--radius, 10px) !important;
+    max-height: 360px !important;
+    width: auto !important;
+    object-fit: contain !important;
 }
 
 /* Upload / remove buttons within image field */
@@ -1564,6 +1605,11 @@
         flex-direction: column;
         align-items: center;
     }
+}
+
+/* ── Accent text markers ────────────────────────── */
+.text--accent {
+    color: var(--accent, #A69279);
 }
 
 /* ── Sidebar safe-area for iOS browser chrome ── */

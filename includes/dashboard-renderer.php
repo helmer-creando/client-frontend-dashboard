@@ -32,6 +32,9 @@ function cfd_get_dashboard_url(): string
         $config = cfd_get_config();
         $page = get_page_by_path($config['dashboard_slug']);
         $url = $page ? get_permalink($page) : home_url('/' . $config['dashboard_slug'] . '/');
+
+        // Extensibility hook: allow addons to modify the dashboard base URL.
+        $url = apply_filters( 'cfd_dashboard_url', $url, array() );
     }
     return $url;
 }
@@ -356,6 +359,10 @@ function cfd_render_page_cards_shortcode(): string
 
     $config = cfd_get_config();
     $pages = cfd_get_editable_pages($config);
+
+    // Extensibility hook: allow addons to filter the page cards array.
+    $pages = apply_filters( 'cfd_page_cards', $pages );
+
     $dashboard_url = cfd_get_dashboard_url();
 
     if (empty($pages)) {
@@ -495,6 +502,58 @@ function cfd_render_view_router(): string
 }
 
 // ═══════════════════════════════════════════════════════════
+// v3.1 — PERSONALIZED WELCOME & HELP HINTS
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Returns a contextual help hint string for a given dashboard view.
+ *
+ * @param string $view      One of: 'edit_page', 'manage', 'edit_cpt', 'create'.
+ * @param string $cpt_label CPT label (plural or singular) for placeholder replacement.
+ * @return string The hint text, or empty string if view is unknown.
+ */
+function cfd_get_view_hint( $view, $cpt_label = '' ): string {
+    switch ( $view ) {
+        case 'edit_page':
+            return 'Edita el contenido y haz clic en "Guardar cambios" cuando termines.';
+        case 'manage':
+            return sprintf(
+                'Aquí puedes ver, buscar y editar tus %s.',
+                esc_html( $cpt_label )
+            );
+        case 'edit_cpt':
+            return 'Modifica los campos y guarda. Los cambios se publican de inmediato.';
+        case 'create':
+            return sprintf(
+                'Rellena los campos para crear un nuevo %s.',
+                esc_html( $cpt_label )
+            );
+        default:
+            return '';
+    }
+}
+
+/**
+ * Renders a view hint <p> tag if hints are enabled in settings.
+ *
+ * @param string $view      Dashboard view identifier.
+ * @param string $cpt_label CPT label for placeholder replacement.
+ */
+function cfd_maybe_render_view_hint( $view, $cpt_label = '' ): void {
+    $settings = get_option( 'cfd_settings', array() );
+    $show_hints = isset( $settings['show_hints'] ) ? (bool) $settings['show_hints'] : true;
+
+    if ( ! $show_hints ) {
+        return;
+    }
+
+    $hint = cfd_get_view_hint( $view, $cpt_label );
+    if ( $hint !== '' ) {
+        echo '<p class="cd-view-hint">' . esc_html( $hint ) . '</p>';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
 // 5. DASHBOARD HOME — List of editable pages + CPTs
 // ═══════════════════════════════════════════════════════════
 
@@ -504,9 +563,14 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
     $dashboard_url = cfd_get_dashboard_url();
 
     $name = $user->first_name ?: $user->display_name;
+    $settings = get_option( 'cfd_settings', array() );
+    $welcome_message = isset( $settings['welcome_message'] ) && $settings['welcome_message'] !== ''
+        ? $settings['welcome_message']
+        : 'Aquí puedes gestionar el contenido de tu sitio web.';
+
     echo '<div class="cd-hero">';
     echo '  <h1 class="cd-hero__greeting">Hola, ' . esc_html($name) . ' ☀️</h1>';
-    echo '  <p class="cd-hero__sub">¿Qué te gustaría actualizar hoy?</p>';
+    echo '  <p class="cd-hero__subtitle">' . esc_html( $welcome_message ) . '</p>';
     echo '</div>';
 
     echo '<div class="cd-home">';
@@ -618,6 +682,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     }
 
     echo '<p class="cd-editor__sub">Edita el contenido. Los cambios se verán reflejados inmediatamente después de guardar.</p>';
+    cfd_maybe_render_view_hint( 'edit_page' );
 
     acf_form(array(
         'post_id' => $post_id,
@@ -667,6 +732,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     $create_url = add_query_arg(array('create' => $cpt_slug), $dashboard_url);
     echo '  <a href="' . esc_url($create_url) . '" class="cd-add-btn">+ Agregar nuevo</a>';
     echo '</div>';
+    cfd_maybe_render_view_hint( 'manage', $cpt_obj->labels->name );
 
     // ── Read & sanitize filter/sort/pagination params ────────
     // Sort uses compound values like 'title-asc', 'date-desc' to encode
@@ -757,6 +823,9 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
         $query_args['s'] = $search;
     }
 
+    // Extensibility hook: allow addons to modify CPT query args (e.g., language filtering).
+    $query_args = apply_filters( 'cfd_cpt_query_args', $query_args, $cpt_slug );
+
     $query = new WP_Query($query_args);
     $total_posts = $query->found_posts;
     $total_pages = $query->max_num_pages;
@@ -789,8 +858,21 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             $edit_url = add_query_arg(array('edit' => $cpt_slug, 'id' => $p->ID), $dashboard_url);
             $view_url = get_permalink($p->ID);
 
+            // Extensibility hook: allow addons to add badges/info to CPT cards.
+            $card_badges = apply_filters( 'cfd_cpt_card_badges', array(), $p, $cpt_slug );
+
+            // Last-edited human-readable timestamp.
+            $modified_ts = get_the_modified_date('U', $p);
+            $time_ago = human_time_diff($modified_ts, current_time('timestamp'));
+
             echo '<a href="' . esc_url($edit_url) . '" class="cd-cpt-card">';
-            echo '  <span class="cd-cpt-card__title">' . esc_html($p->post_title) . '</span>';
+            echo '  <span class="cd-cpt-card__body">';
+            echo '    <span class="cd-cpt-card__title">' . esc_html($p->post_title) . '</span>';
+            echo '    <span class="cd-cpt-card__meta">Editado hace ' . esc_html($time_ago) . '</span>';
+            if ( ! empty( $card_badges ) ) {
+                echo '    <span class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</span>';
+            }
+            echo '  </span>';
             echo '  <span class="cd-cpt-card__view" data-href="' . esc_url($view_url) . '">Ver ↗</span>';
             echo '</a>';
         }
@@ -912,6 +994,10 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     }
 
     echo '<p class="cd-editor__sub">Edita el contenido de esta entrada.</p>';
+    cfd_maybe_render_view_hint( 'edit_cpt' );
+
+    // Extensibility hook: before the editor form (e.g., translation links).
+    do_action( 'cfd_editor_before_form', $post, $cpt_slug );
 
     acf_form(array(
         'post_id' => $post_id,
@@ -925,6 +1011,9 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         'html_submit_spinner' => '<span class="cd-spinner"></span>',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
+
+    // Extensibility hook: after the editor form, before actions.
+    do_action( 'cfd_editor_after_form', $post, $cpt_slug );
 
     echo '</div>';
 
@@ -952,6 +1041,7 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
     echo '<div class="cd-editor">';
     echo '<h2 class="cd-editor__title">Crear nuevo: ' . esc_html($cpt_obj->labels->singular_name) . '</h2>';
     echo '<p class="cd-editor__sub">Completa los campos y publica.</p>';
+    cfd_maybe_render_view_hint( 'create', $cpt_obj->labels->singular_name );
 
     acf_form(array(
         'post_id' => 'new_post',

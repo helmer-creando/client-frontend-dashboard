@@ -192,6 +192,65 @@ function cfd_detect_available_cpts(): array
 }
 
 // ═══════════════════════════════════════════════════════════
+// v3.1 — ACCENT TEXT MARKERS
+// ═══════════════════════════════════════════════════════════
+//
+// Converts {curly brace} markers in ACF text/textarea fields
+// into <span class="text--accent"> on the frontend.
+// Only runs on the public site — never in wp-admin or Bricks.
+//
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Replaces {word} markers with <span class="text--accent">word</span>.
+ *
+ * @param string $text The input text.
+ * @return string Text with accent markers rendered as spans.
+ */
+function cfd_render_accent_text( $text ) {
+    if ( strpos( $text, '{' ) === false ) {
+        return $text;
+    }
+    return preg_replace( '/\{([^}]+)\}/', '<span class="text--accent">$1</span>', $text );
+}
+
+/**
+ * Hook cfd_render_accent_text into ACF output filters.
+ *
+ * Runs on acf/format_value for text and textarea field types.
+ * Skipped in wp-admin and the Bricks editor to avoid corrupting
+ * stored values or interfering with the editing experience.
+ */
+add_filter( 'acf/format_value/type=text', 'cfd_accent_text_acf_filter', 20 );
+add_filter( 'acf/format_value/type=textarea', 'cfd_accent_text_acf_filter', 20 );
+
+function cfd_accent_text_acf_filter( $value ) {
+    // Only run on the public frontend.
+    if ( is_admin() || cfd_is_bricks_builder() ) {
+        return $value;
+    }
+    if ( ! is_string( $value ) || $value === '' ) {
+        return $value;
+    }
+    return cfd_render_accent_text( $value );
+}
+
+/**
+ * Show a UX hint below ACF text and textarea fields in the editor.
+ *
+ * Appends a small description reminding the client they can use
+ * {curly braces} to highlight accent words.
+ */
+add_action( 'acf/render_field/type=text', 'cfd_accent_text_field_hint', 20 );
+add_action( 'acf/render_field/type=textarea', 'cfd_accent_text_field_hint', 20 );
+
+function cfd_accent_text_field_hint( $field ) {
+    echo '<p class="description" style="margin-top:4px;">';
+    echo '💡 Usa {llaves} para resaltar una palabra. Ejemplo: Viaje a {Bolivia}';
+    echo '</p>';
+}
+
+// ═══════════════════════════════════════════════════════════
 // v3.0 — DASHBOARD VIEW DETECTION
 // ═══════════════════════════════════════════════════════════
 
@@ -693,6 +752,9 @@ function cfd_build_nav_items(): array
             $items[] = $item;
         }
     }
+
+    // Extensibility hook: allow addons to modify nav items.
+    $items = apply_filters( 'cfd_nav_items', $items );
 
     return $items;
 }
