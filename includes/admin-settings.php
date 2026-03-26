@@ -457,6 +457,13 @@ function cfd_render_settings_page(): void
                 Select which post types clients can create, edit, and delete from
                 the frontend dashboard. Only public, non-built-in types are shown.
             </p>
+            <div class="notice notice-info inline" style="margin: 0.5em 0 1em;">
+                <p>
+                    💡 These are the CPTs enabled <strong>site-wide</strong>. To restrict
+                    individual users, go to <strong>Users → [user] → Edit</strong> and
+                    configure their access under "Client Dashboard Access".
+                </p>
+            </div>
 
             <?php if (empty($available_cpts)): ?>
                 <div class="notice notice-warning inline">

@@ -394,3 +394,207 @@ function cfd_reset_role(): void {
     cfd_register_site_editor_role();
     cfd_sync_cpt_caps( true );
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// 8. PER-USER ACCESS — PROFILE FIELDS
+// ═══════════════════════════════════════════════════════════
+//
+// Adds a "Client Dashboard Access" section to the WordPress
+// User Edit screen (Users → Edit) for site_editor users.
+//
+// The admin can:
+// - Toggle "Restrict access" to enable per-user filtering
+// - Check which CPTs the user can manage
+// - Check which pages the user can edit
+//
+// When restriction is off, the user sees everything enabled
+// site-wide (preserves current behavior for existing users).
+
+add_action( 'edit_user_profile', 'cfd_render_user_access_fields' );
+add_action( 'show_user_profile', 'cfd_render_user_access_fields' );
+
+/**
+ * Renders per-user CFD access fields on the user profile screen.
+ *
+ * Only shown when editing a site_editor user, and only visible
+ * to admins who can manage_options.
+ *
+ * @param WP_User $user The user being edited.
+ */
+function cfd_render_user_access_fields( WP_User $user ): void {
+    // Only show for site_editor users.
+    if ( ! in_array( 'site_editor', $user->roles, true ) ) {
+        return;
+    }
+
+    // Only admins can configure access.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    $config        = cfd_get_config();
+    $restrict      = get_user_meta( $user->ID, 'cfd_restrict_access', true ) === '1';
+    $user_cpts     = get_user_meta( $user->ID, 'cfd_user_cpts', true );
+    $user_pages    = get_user_meta( $user->ID, 'cfd_user_pages', true );
+
+    if ( ! is_array( $user_cpts ) )  { $user_cpts  = array(); }
+    if ( ! is_array( $user_pages ) ) { $user_pages = array(); }
+
+    // Get the pool of available CPTs and pages.
+    $available_cpts = $config['manageable_cpts'];
+    $editable_pages = cfd_get_editable_pages( $config );
+    ?>
+
+    <h2>Client Dashboard Access</h2>
+    <p class="description">
+        Control which CPTs and pages this user can see in the frontend dashboard.
+        When restriction is <strong>off</strong>, the user sees everything enabled in
+        <a href="<?php echo esc_url( admin_url( 'options-general.php?page=cfd-settings' ) ); ?>">Settings → Client Dashboard</a>.
+    </p>
+
+    <table class="form-table" role="presentation">
+        <!-- Restrict toggle -->
+        <tr>
+            <th scope="row">Restrict access</th>
+            <td>
+                <label>
+                    <input
+                        type="checkbox"
+                        name="cfd_restrict_access"
+                        id="cfd_restrict_access"
+                        value="1"
+                        <?php checked( $restrict ); ?>
+                    />
+                    Enable per-user access restrictions for this user
+                </label>
+                <p class="description">
+                    When checked, only the CPTs and pages selected below will appear
+                    in this user's dashboard.
+                </p>
+            </td>
+        </tr>
+
+        <!-- CPT checkboxes -->
+        <tr class="cfd-restrict-row" <?php echo ! $restrict ? 'style="display:none;"' : ''; ?>>
+            <th scope="row">Allowed CPTs</th>
+            <td>
+                <?php if ( empty( $available_cpts ) ) : ?>
+                    <p class="description" style="color: #888;">
+                        No CPTs are enabled site-wide. Enable them in
+                        <a href="<?php echo esc_url( admin_url( 'options-general.php?page=cfd-settings' ) ); ?>">Settings → Client Dashboard</a> first.
+                    </p>
+                <?php else : ?>
+                    <fieldset>
+                        <?php foreach ( $available_cpts as $cpt_slug ) :
+                            $cpt_obj = get_post_type_object( $cpt_slug );
+                            if ( ! $cpt_obj ) { continue; }
+                            $checked = in_array( $cpt_slug, $user_cpts, true );
+                        ?>
+                        <label style="display: block; margin-bottom: 0.4em;">
+                            <input
+                                type="checkbox"
+                                name="cfd_user_cpts[]"
+                                value="<?php echo esc_attr( $cpt_slug ); ?>"
+                                <?php checked( $checked ); ?>
+                            />
+                            <strong><?php echo esc_html( $cpt_obj->labels->name ); ?></strong>
+                            <code style="margin-left: 0.3em; color: #888;"><?php echo esc_html( $cpt_slug ); ?></code>
+                        </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                <?php endif; ?>
+            </td>
+        </tr>
+
+        <!-- Page checkboxes -->
+        <tr class="cfd-restrict-row" <?php echo ! $restrict ? 'style="display:none;"' : ''; ?>>
+            <th scope="row">Allowed Pages</th>
+            <td>
+                <?php if ( empty( $editable_pages ) ) : ?>
+                    <p class="description" style="color: #888;">
+                        No editable pages found (pages need ACF field groups to appear here).
+                    </p>
+                <?php else : ?>
+                    <fieldset>
+                        <?php foreach ( $editable_pages as $page ) :
+                            $checked = in_array( $page->ID, $user_pages, true );
+                        ?>
+                        <label style="display: block; margin-bottom: 0.4em;">
+                            <input
+                                type="checkbox"
+                                name="cfd_user_pages[]"
+                                value="<?php echo esc_attr( $page->ID ); ?>"
+                                <?php checked( $checked ); ?>
+                            />
+                            <strong><?php echo esc_html( $page->post_title ); ?></strong>
+                            <code style="margin-left: 0.3em; color: #888;">ID: <?php echo esc_html( $page->ID ); ?></code>
+                        </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                <?php endif; ?>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+    jQuery(function($) {
+        var $toggle = $('#cfd_restrict_access');
+        var $rows   = $('.cfd-restrict-row');
+
+        $toggle.on('change', function() {
+            if ( $(this).is(':checked') ) {
+                $rows.show();
+            } else {
+                $rows.hide();
+            }
+        });
+    });
+    </script>
+    <?php
+}
+
+
+// ── Save per-user access fields ─────────────────────────────
+
+add_action( 'edit_user_profile_update', 'cfd_save_user_access_fields' );
+add_action( 'personal_options_update',  'cfd_save_user_access_fields' );
+
+/**
+ * Saves per-user CFD access fields from the user profile form.
+ *
+ * @param int $user_id The user ID being saved.
+ */
+function cfd_save_user_access_fields( int $user_id ): void {
+    // Only admins can change access settings.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    // Only process for site_editor users.
+    $user = get_userdata( $user_id );
+    if ( ! $user || ! in_array( 'site_editor', $user->roles, true ) ) {
+        return;
+    }
+
+    // ── Restrict toggle ──
+    $restrict = ! empty( $_POST['cfd_restrict_access'] ) ? '1' : '0';
+    update_user_meta( $user_id, 'cfd_restrict_access', $restrict );
+
+    // ── CPTs ──
+    if ( isset( $_POST['cfd_user_cpts'] ) && is_array( $_POST['cfd_user_cpts'] ) ) {
+        $cpts = array_map( 'sanitize_key', $_POST['cfd_user_cpts'] );
+    } else {
+        $cpts = array();
+    }
+    update_user_meta( $user_id, 'cfd_user_cpts', $cpts );
+
+    // ── Pages ──
+    if ( isset( $_POST['cfd_user_pages'] ) && is_array( $_POST['cfd_user_pages'] ) ) {
+        $pages = array_map( 'absint', $_POST['cfd_user_pages'] );
+    } else {
+        $pages = array();
+    }
+    update_user_meta( $user_id, 'cfd_user_pages', $pages );
+}
+

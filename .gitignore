@@ -16,6 +16,9 @@ Desktop.ini
 # ── Logs ──
 *.log
 
+# ── Design assets (Stitch 2.0) ──
+stitch-design/
+
 # ── Dependencies (future-proofing) ──
 node_modules/
 vendor/

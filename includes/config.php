@@ -95,6 +95,68 @@ function cfd_get_config(): array
 }
 
 /**
+ * Returns the plugin config with per-user access overrides applied.
+ *
+ * Checks user meta for per-user CPT and page restrictions.
+ * If the user has 'cfd_restrict_access' enabled, their
+ * manageable_cpts and editable_pages are filtered down to only
+ * the items selected in their profile.
+ *
+ * If no per-user overrides exist, returns the global config unchanged.
+ *
+ * @param int|null $user_id  User ID to check. Defaults to current user.
+ * @return array Same shape as cfd_get_config(), with per-user overrides applied.
+ */
+function cfd_get_user_config( ?int $user_id = null ): array {
+    // Cache per user_id per request.
+    static $cache = array();
+
+    if ( $user_id === null ) {
+        $user_id = get_current_user_id();
+    }
+
+    if ( isset( $cache[ $user_id ] ) ) {
+        return $cache[ $user_id ];
+    }
+
+    $config = cfd_get_config();
+
+    // Only apply per-user restrictions to site_editor users.
+    $user = get_userdata( $user_id );
+    if ( ! $user || ! in_array( 'site_editor', $user->roles, true ) ) {
+        $cache[ $user_id ] = $config;
+        return $config;
+    }
+
+    // Check if per-user restriction is enabled.
+    $restrict = get_user_meta( $user_id, 'cfd_restrict_access', true );
+    if ( $restrict !== '1' ) {
+        $cache[ $user_id ] = $config;
+        return $config;
+    }
+
+    // ── Per-user CPTs ──
+    $user_cpts = get_user_meta( $user_id, 'cfd_user_cpts', true );
+    if ( is_array( $user_cpts ) ) {
+        // Intersect with global config — can't grant access to CPTs
+        // that aren't enabled site-wide.
+        $config['manageable_cpts'] = array_values(
+            array_intersect( $config['manageable_cpts'], $user_cpts )
+        );
+    }
+
+    // ── Per-user Pages ──
+    $user_pages = get_user_meta( $user_id, 'cfd_user_pages', true );
+    if ( is_array( $user_pages ) ) {
+        $config['editable_pages'] = array_map( 'absint', $user_pages );
+    }
+
+    $cache[ $user_id ] = $config;
+    return $config;
+}
+
+
+/**
  * Number of CPT entries shown per page on the dashboard list view.
  * Used by cfd_render_cpt_list() for pagination.
  */
@@ -697,7 +759,7 @@ function cfd_build_nav_items(): array
         return array();
     }
 
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
     $dashboard_url = cfd_get_dashboard_url();
     $view = cfd_get_dashboard_view();
 

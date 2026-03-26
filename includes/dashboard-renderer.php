@@ -94,10 +94,12 @@ function cfd_handle_cpt_delete(): void
         return;
     }
 
+    // Use per-user config to validate access.
+    $user_config = cfd_get_user_config();
     $post = get_post($post_id);
     $cpt_slug = $post ? $post->post_type : '';
 
-    if (!in_array($cpt_slug, $config['manageable_cpts'], true)) {
+    if (!in_array($cpt_slug, $user_config['manageable_cpts'], true)) {
         return;
     }
 
@@ -146,7 +148,9 @@ function cfd_handle_cpt_duplicate(): void
         return;
     }
 
-    if (!in_array($original->post_type, $config['manageable_cpts'], true)) {
+    // Use per-user config to validate access.
+    $user_config = cfd_get_user_config();
+    if (!in_array($original->post_type, $user_config['manageable_cpts'], true)) {
         return;
     }
 
@@ -234,7 +238,7 @@ function cfd_render_dashboard(): string
     }
 
     $user = wp_get_current_user();
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
 
     $action = isset($_GET['edit']) ? sanitize_key($_GET['edit']) : '';
     $manage = isset($_GET['manage']) ? sanitize_key($_GET['manage']) : '';
@@ -305,7 +309,7 @@ function cfd_render_sidebar_nav(): string
     // Ensure Dashicons are available on the frontend.
     wp_enqueue_style('dashicons');
 
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
     $dashboard_url = cfd_get_dashboard_url();
     $view = cfd_get_dashboard_view();
 
@@ -437,7 +441,7 @@ function cfd_render_page_cards_shortcode(): string
         return '';
     }
 
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
     $pages = cfd_get_editable_pages($config);
 
     // Extensibility hook: allow addons to filter the page cards array.
@@ -485,7 +489,7 @@ function cfd_render_cpt_cards_shortcode(): string
         return '';
     }
 
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
     $dashboard_url = cfd_get_dashboard_url();
 
     if (empty($config['manageable_cpts'])) {
@@ -605,7 +609,7 @@ function cfd_render_view_router(): string
     }
 
     $user = wp_get_current_user();
-    $config = cfd_get_config();
+    $config = cfd_get_user_config();
     $post_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 
     ob_start();
@@ -696,6 +700,7 @@ function cfd_maybe_render_view_hint( $view, $cpt_label = '' ): void {
 
 function cfd_render_dashboard_home(WP_User $user, array $config): void
 {
+    // Use the per-user config passed from the caller.
     $pages = cfd_get_editable_pages($config);
     $dashboard_url = cfd_get_dashboard_url();
 
@@ -795,6 +800,13 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
 
     if (!current_user_can('edit_page', $post_id)) {
         echo '<div class="cd-error">No tienes permiso para editar esta página.</div>';
+        return;
+    }
+
+    // Per-user page access check.
+    $user_config = cfd_get_user_config();
+    if (!empty($user_config['editable_pages']) && !in_array($post_id, $user_config['editable_pages'], true)) {
+        echo '<div class="cd-error">No tienes acceso a esta página.</div>';
         return;
     }
 
