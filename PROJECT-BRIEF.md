@@ -5,7 +5,7 @@
 A WordPress plugin called **Client Frontend Dashboard** that gives non-technical clients a beautiful, self-contained frontend dashboard to edit pages, images, and CPT content — without ever touching wp-admin. Built for wellness/therapy/holistic sites.
 
 **Live staging site:** `blueprint.co-creador.com`
-**Plugin version:** 3.0.0
+**Plugin version:** 3.2.1
 **Author:** AutentiWeb (https://autentiweb.com)
 **GitHub repo:** https://github.com/helmer-creando/client-frontend-dashboard (public)
 
@@ -38,6 +38,7 @@ A WordPress plugin called **Client Frontend Dashboard** that gives non-technical
 The biggest change in v3.0 is moving away from the plugin dictating the entire HTML wrapper. We adopted a **Hybrid Approach**:
 - **Bricks Builder:** Handles high-level layout, Chrome (sidebar container, main content area, mobile offcanvas), typography, and global CSS via ACSS.
 - **CFD Plugin:** Handles backend logic, user sessions, database queries, and outputs the "meat" of the UI (post grids, forms, modals) via composable shortcodes.
+- **Per-User Access (v3.2):** Introduced granular, user-specific overrides. Admins can now restrict which CPTs and Pages individual non-admin users can manage via the WordPress User Profile screen. Existing users remain unrestricted by default (backward compatible).
 
 ### Core Composable Shortcodes (v3.0)
 Instead of one massive `[client_dashboard]` shortcode, layout is now handled by Bricks dropping these pieces:
@@ -58,9 +59,9 @@ client-frontend-dashboard/
 ├── client-frontend-dashboard.php    ← Bootstrap: constants, auto-updater, requires, hooks
 ├── plugin-update-checker/           ← YahnisElsts v5.6 library (GitHub Releases auto-updates)
 ├── includes/
-│   ├── config.php                   ← Config, DB merge, CPT detection, helpers, Bricks dynamic tags
-│   ├── roles-and-access.php         ← site_editor role, redirects, admin lockout, caching
-│   ├── dashboard-renderer.php       ← Shortcodes, ACF form CRUD, filtering/pagination, composable renderer
+│   ├── config.php                   ← Config, DB merge, CPT detection, Per-user overrides, Bricks dynamic tags
+│   ├── roles-and-access.php         ← roles, redirects, per-user profile UI & save handlers, caching
+│   ├── dashboard-renderer.php       ← Shortcodes, ACF form CRUD, Per-user access guards, renderer
 │   ├── login.php                    ← [cd_login_form] shortcode, auth handler, logout, password reset
 │   ├── styles.php                   ← Enqueues dashboard.css (just the loader)
 │   └── admin-settings.php           ← Settings → Client Dashboard (CPT toggles, slugs, logo upload)
@@ -74,7 +75,8 @@ client-frontend-dashboard/
 ```
 
 ### Key Helper Functions (config.php)
-- `cfd_get_config()` — Merged config with static caching
+- `cfd_get_config()` — Merged global config with static caching
+- `cfd_get_user_config($user_id)` — Plugin config with per-user overrides applied (intercepts global config)
 - `cfd_is_bricks_builder()` — Shared Bricks editor detection (4 methods)
 - `cfd_get_no_cache_slugs()` — Returns dashboard + login slugs for cache exclusion
 - `cfd_detect_available_cpts()` — Finds all public non-built-in CPTs (used by settings page)
