@@ -121,9 +121,9 @@ function cfd_get_user_config( ?int $user_id = null ): array {
 
     $config = cfd_get_config();
 
-    // Only apply per-user restrictions to site_editor users.
+    // Only apply per-user restrictions to non-admin users.
     $user = get_userdata( $user_id );
-    if ( ! $user || ! in_array( 'site_editor', $user->roles, true ) ) {
+    if ( ! $user || $user->has_cap( 'manage_options' ) ) {
         $cache[ $user_id ] = $config;
         return $config;
     }

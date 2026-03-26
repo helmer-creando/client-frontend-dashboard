@@ -401,7 +401,7 @@ function cfd_reset_role(): void {
 // ═══════════════════════════════════════════════════════════
 //
 // Adds a "Client Dashboard Access" section to the WordPress
-// User Edit screen (Users → Edit) for site_editor users.
+// User Edit screen (Users → Edit) for non-admin users.
 //
 // The admin can:
 // - Toggle "Restrict access" to enable per-user filtering
@@ -417,14 +417,14 @@ add_action( 'show_user_profile', 'cfd_render_user_access_fields' );
 /**
  * Renders per-user CFD access fields on the user profile screen.
  *
- * Only shown when editing a site_editor user, and only visible
- * to admins who can manage_options.
+ * Shown for any non-admin user (site_editor, custom roles, etc.)
+ * and only visible to admins who can manage_options.
  *
  * @param WP_User $user The user being edited.
  */
 function cfd_render_user_access_fields( WP_User $user ): void {
-    // Only show for site_editor users.
-    if ( ! in_array( 'site_editor', $user->roles, true ) ) {
+    // Only show for non-admin users (admins don't need restrictions).
+    if ( $user->has_cap( 'manage_options' ) ) {
         return;
     }
 
@@ -488,7 +488,7 @@ function cfd_render_user_access_fields( WP_User $user ): void {
                     <fieldset>
                         <?php foreach ( $available_cpts as $cpt_slug ) :
                             $cpt_obj = get_post_type_object( $cpt_slug );
-                            if ( ! $cpt_obj ) { continue; }
+                            $cpt_label = $cpt_obj ? $cpt_obj->labels->name : ucwords( str_replace( array( '-', '_' ), ' ', $cpt_slug ) );
                             $checked = in_array( $cpt_slug, $user_cpts, true );
                         ?>
                         <label style="display: block; margin-bottom: 0.4em;">
@@ -498,7 +498,7 @@ function cfd_render_user_access_fields( WP_User $user ): void {
                                 value="<?php echo esc_attr( $cpt_slug ); ?>"
                                 <?php checked( $checked ); ?>
                             />
-                            <strong><?php echo esc_html( $cpt_obj->labels->name ); ?></strong>
+                            <strong><?php echo esc_html( $cpt_label ); ?></strong>
                             <code style="margin-left: 0.3em; color: #888;"><?php echo esc_html( $cpt_slug ); ?></code>
                         </label>
                         <?php endforeach; ?>
@@ -571,9 +571,9 @@ function cfd_save_user_access_fields( int $user_id ): void {
         return;
     }
 
-    // Only process for site_editor users.
+    // Only process for non-admin users.
     $user = get_userdata( $user_id );
-    if ( ! $user || ! in_array( 'site_editor', $user->roles, true ) ) {
+    if ( ! $user || $user->has_cap( 'manage_options' ) ) {
         return;
     }
 
