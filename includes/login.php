@@ -73,15 +73,29 @@ function cfd_render_login_form_only(): string {
         ? esc_url( $_GET['redirect_to'] )
         : home_url( $config['login_redirect'] );
 
+    // We use a relative URL for the form action instead of site_url('wp-login.php')
+    // to prevent 301 redirects dropping POST data if the site domain/HTTPS
+    // settings are misconfigured (e.g. during a custom domain migration).
+    $login_url = '/wp-login.php';
+
     ob_start();
-    wp_login_form( array(
-        'redirect'       => $redirect_to,
-        'label_username' => 'Correo electrónico',
-        'label_password' => 'Contraseña',
-        'label_remember' => 'Recuérdame',
-        'label_log_in'   => 'Entrar a mi espacio ✨',
-        'remember'       => true,
-    ) );
+    ?>
+    <form name="loginform" id="loginform" action="<?php echo esc_url( $login_url ); ?>" method="post">
+        <p class="login-username">
+            <label for="user_login">Correo electrónico</label>
+            <input type="text" name="log" id="user_login" class="input" value="" size="20" required />
+        </p>
+        <p class="login-password">
+            <label for="user_pass">Contraseña</label>
+            <input type="password" name="pwd" id="user_pass" class="input" value="" size="20" required />
+        </p>
+        <p class="login-remember"><label><input name="rememberme" type="checkbox" id="rememberme" value="forever" checked="checked" /> Recuérdame</label></p>
+        <p class="login-submit">
+            <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary" value="Entrar a mi espacio ✨" />
+            <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
+        </p>
+    </form>
+    <?php
     return ob_get_clean();
 }
 
