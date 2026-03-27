@@ -174,6 +174,21 @@
         });
     }
 
+    // ─── Global: Close color pickers on click outside ───────
+    document.addEventListener('click', function (e) {
+        var openPickers = document.querySelectorAll('.cfd-color-picker.is-open');
+        openPickers.forEach(function (wrapper) {
+            // If the click was NOT inside this specific picker wrapper, close it
+            if (!wrapper.contains(e.target)) {
+                var panel = wrapper.querySelector('.cfd-color-picker__panel');
+                if (panel) {
+                    panel.style.display = 'none';
+                    wrapper.classList.remove('is-open');
+                }
+            }
+        });
+    });
+
     // ═══════════════════════════════════════════════════════
     // 2. DATE/TIME PICKERS — Enlarge touch targets
     // ═══════════════════════════════════════════════════════

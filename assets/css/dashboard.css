@@ -2576,9 +2576,11 @@
 }
 
 .kh-editor__subtitle {
-    font-size: var(--step-0, 1rem) !important;
+    font-size: var(--text-m, 1.15rem) !important;
     color: var(--kh-on-surface-variant, #5F5953) !important;
-    margin-bottom: var(--space-l, 2rem) !important;
+    margin-bottom: var(--space-l, 2.5rem) !important;
+    line-height: 1.5 !important;
+    max-width: 800px;
 }
 
 .kh-editor__header {
@@ -2626,9 +2628,12 @@
     font-size: 1.6rem !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
+    letter-spacing: 0.08em !important;
     color: var(--kh-primary, #443B33) !important;
-    margin: 2rem 0 1rem 0 !important;
+    margin: 3.5rem 0 1.5rem 0 !important;
+    padding-left: 1.25rem !important;
+    border-left: 4px solid var(--kh-secondary, #B29B8A) !important;
+    line-height: 1.2 !important;
 }
 
 .material-symbols-outlined {
@@ -2738,11 +2743,11 @@
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    z-index: 100;
+    z-index: 9999 !important;
     background: #fff;
     padding: var(--space-m, 1rem);
     border-radius: var(--radius-m, 12px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    box-shadow: 0 15px 45px rgba(0,0,0,0.2) !important;
     border: 1px solid var(--border-light, #F0EBE6);
 }
 
