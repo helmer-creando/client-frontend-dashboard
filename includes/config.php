@@ -387,7 +387,8 @@ function cfd_is_dashboard_home(): bool
 // ─────────────────────────────────────────────────────────
 
 // ─── Bricks Security: Whitelist functions for {echo:} tag ────────
-// TEMPORARILY DISABLED - Debug white screen issue
+// DISABLED: Use native conditions instead of {echo:} tags.
+// The native "Has Manageable CPTs" condition in the dropdown is more reliable.
 // add_filter('bricks/code/echo_function_names', 'cfd_bricks_whitelist_functions');
 
 function cfd_bricks_whitelist_functions(array $allowed): array
@@ -474,8 +475,7 @@ function cfd_bricks_conditions_options(array $options): array
  * @param array  $condition     The full condition array with 'compare' and 'value' keys.
  * @return bool
  */
-// TEMPORARILY DISABLED - Debug white screen issue
-// add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
+add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
 
 function cfd_bricks_conditions_result($result, $condition_key, $condition)
 {
