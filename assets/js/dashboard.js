@@ -136,45 +136,68 @@ document.addEventListener('click', function (e) {
         modal.appendChild(icon);
 
         // Collect all success messages
+        var previewUrl = null;
+        var hasUpdatedMsg = false;
+
         successEls.forEach(function (el) {
             var msg = document.createElement('div');
             msg.className = 'cd-modal__message';
 
-            // Extract text and link separately (skip emoji prefixes)
             var textSpan = el.querySelector('span');
             var link = el.querySelector('a');
 
             if (textSpan) {
                 var p = document.createElement('p');
                 p.className = 'cd-modal__text';
-                // Strip leading emoji characters from the span text
-                p.textContent = textSpan.textContent.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}✅🗑️\s]+/u, '').trim();
+                
+                var rawText = textSpan.textContent.toLowerCase();
+                if (rawText.indexOf('actualizad') !== -1 || rawText.indexOf('guardad') !== -1 || rawText.indexOf('check_circle') !== -1) {
+                    p.textContent = '¡Guardado con éxito!';
+                    hasUpdatedMsg = true;
+                } else {
+                    p.textContent = textSpan.textContent.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}✅🗑️\s]+/u, '').trim();
+                }
                 msg.appendChild(p);
             }
             if (link) {
-                var a = document.createElement('a');
-                a.href = link.href;
-                a.target = '_blank';
-                a.className = 'cd-modal__link';
-                a.textContent = link.textContent;
-                msg.appendChild(a);
+                previewUrl = link.href;
             }
 
             modal.appendChild(msg);
             el.remove();
         });
 
+        // Button Container
+        var btnContainer = document.createElement('div');
+        btnContainer.className = 'cd-modal__actions';
+
+        // Ver página button (if URL exists)
+        if (previewUrl) {
+            var viewBtn = document.createElement('a');
+            viewBtn.href = previewUrl;
+            viewBtn.target = '_blank';
+            viewBtn.className = 'cd-modal__btn cd-modal__btn--primary';
+            viewBtn.textContent = 'Ver página';
+            // Also dismiss modal when clicking "Ver página"
+            viewBtn.addEventListener('click', function() {
+                setTimeout(dismiss, 100);
+            });
+            btnContainer.appendChild(viewBtn);
+        }
+
         // Accept button
         var acceptBtn = document.createElement('button');
-        acceptBtn.className = 'cd-modal__accept';
+        acceptBtn.className = 'cd-modal__btn cd-modal__btn--secondary';
         acceptBtn.textContent = 'Aceptar';
         acceptBtn.addEventListener('click', dismiss);
-        modal.appendChild(acceptBtn);
+        btnContainer.appendChild(acceptBtn);
+
+        modal.appendChild(btnContainer);
 
         // Close button (top-right ✕)
         var closeBtn = document.createElement('button');
         closeBtn.className = 'cd-modal__close';
-        closeBtn.textContent = '✕';
+        closeBtn.innerHTML = '&times;';
         closeBtn.setAttribute('aria-label', 'Cerrar');
         closeBtn.addEventListener('click', dismiss);
         modal.appendChild(closeBtn);

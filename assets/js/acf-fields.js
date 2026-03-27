@@ -86,6 +86,13 @@
             panel.className = 'cfd-color-picker__panel';
             panel.style.display = 'none';
 
+            // Hex display field
+            var hexDisplay = document.createElement('div');
+            hexDisplay.className = 'cfd-color-picker__value-display';
+            hexDisplay.innerHTML = '<span class="cfd-color-picker__label">HEX:</span>' +
+                                 '<input type="text" class="cfd-color-picker__input" readonly value="' + currentColor + '">';
+            panel.appendChild(hexDisplay);
+
             var pickerMount = document.createElement('div');
             pickerMount.className = 'cfd-color-picker__mount';
             panel.appendChild(pickerMount);
@@ -145,6 +152,11 @@
                 // Update our swatch + hex display
                 toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = hex;
                 toggle.querySelector('.cfd-color-picker__hex').textContent = hex;
+                
+                // Update internal panel hex display
+                var internalHex = panel.querySelector('.cfd-color-picker__input');
+                if (internalHex) internalHex.value = hex;
+                
                 clearBtn.style.display = 'inline-block';
             });
 
