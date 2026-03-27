@@ -3322,7 +3322,7 @@
     display: none;
     position: fixed;
     top: var(--space-s, 1rem);
-    left: var(--space-s, 1rem);
+    right: var(--space-s, 1rem);
     z-index: 10000;
     height: 44px;
     padding: 0 var(--space-s, 1rem);
@@ -3339,6 +3339,7 @@
     font-size: var(--text-s, 0.875rem);
     font-weight: 500;
     letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 .cfd-mobile-toggle:hover {

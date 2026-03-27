@@ -272,17 +272,17 @@ document.addEventListener('click', function (e) {
     var sidebar = document.querySelector('.cfd-sidebar');
     if (!sidebar) return;
 
-    // Create toggle button with icon + "Menú" label
+    // Create toggle button with "Menú" label + icon
     var toggleBtn = document.createElement('button');
     toggleBtn.className = 'cfd-mobile-toggle';
     toggleBtn.setAttribute('aria-label', 'Abrir menú');
     toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.innerHTML = '<span class="cfd-mobile-toggle__icon">' +
+    toggleBtn.innerHTML = '<span class="cfd-mobile-toggle__label">Menú</span>' +
+        '<span class="cfd-mobile-toggle__icon">' +
         '<span class="cfd-mobile-toggle__line"></span>' +
         '<span class="cfd-mobile-toggle__line"></span>' +
         '<span class="cfd-mobile-toggle__line"></span>' +
-        '</span>' +
-        '<span class="cfd-mobile-toggle__label">Menú</span>';
+        '</span>';
 
     // Create overlay
     var overlay = document.createElement('div');

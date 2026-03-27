@@ -945,7 +945,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         'updated_message' => false,
         'return' => $return_url,
         'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
-        'html_submit_spinner' => '<span class="cd-spinner"></span>',
+        'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
@@ -1290,7 +1290,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         'updated_message' => false,
         'return' => $return_url,
         'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
-        'html_submit_spinner' => '<span class="cd-spinner"></span>',
+        'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
@@ -1373,7 +1373,7 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
         'updated_message' => false,
         'return' => $return_url,
         'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">magic_button</span> Crear y publicar</button>',
-        'html_submit_spinner' => '<span class="cd-spinner"></span>',
+        'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
