@@ -20,6 +20,56 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 0. HANDLE LOGIN POST (before any output)
+// ═══════════════════════════════════════════════════════════
+
+add_action( 'template_redirect', 'cfd_handle_login_post' );
+
+function cfd_handle_login_post(): void {
+    if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) {
+        return;
+    }
+    if ( ! isset( $_POST['cfd_login_nonce'] ) ) {
+        return;
+    }
+
+    $config    = cfd_get_config();
+    $login_url = home_url( '/' . $config['login_slug'] . '/' );
+
+    if ( ! wp_verify_nonce( $_POST['cfd_login_nonce'], 'cfd-login' ) ) {
+        wp_safe_redirect( add_query_arg( 'login', 'failed', $login_url ) );
+        exit;
+    }
+
+    $username = sanitize_text_field( $_POST['log'] ?? '' );
+    $password = $_POST['pwd'] ?? '';
+    $remember = ! empty( $_POST['rememberme'] );
+
+    if ( empty( $username ) || empty( $password ) ) {
+        wp_safe_redirect( add_query_arg( 'login', 'empty', $login_url ) );
+        exit;
+    }
+
+    $user = wp_signon( array(
+        'user_login'    => $username,
+        'user_password' => $password,
+        'remember'      => $remember,
+    ), is_ssl() );
+
+    if ( is_wp_error( $user ) ) {
+        wp_safe_redirect( add_query_arg( 'login', 'failed', $login_url ) );
+        exit;
+    }
+
+    $redirect_to = ! empty( $_POST['redirect_to'] )
+        ? esc_url_raw( $_POST['redirect_to'] )
+        : home_url( $config['login_redirect'] );
+
+    wp_safe_redirect( $redirect_to );
+    exit;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 1. ENQUEUE LOGIN PAGE STYLES
 // ═══════════════════════════════════════════════════════════
 
@@ -73,44 +123,7 @@ function cfd_render_login_form_only(): string {
         ? esc_url( $_GET['redirect_to'] )
         : home_url( $config['login_redirect'] );
 
-    // Handle login POST directly on this page (avoids wp-login.php 301 issues).
-    $error_msg = '';
-    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['cfd_login_nonce'] ) ) {
-        if ( ! wp_verify_nonce( $_POST['cfd_login_nonce'], 'cfd-login' ) ) {
-            $error_msg = 'Solicitud no válida. Intenta de nuevo.';
-        } else {
-            $username = sanitize_text_field( $_POST['log'] ?? '' );
-            $password = $_POST['pwd'] ?? '';
-            $remember = ! empty( $_POST['rememberme'] );
-
-            if ( empty( $username ) || empty( $password ) ) {
-                $error_msg = 'Por favor, introduce tu correo electrónico y contraseña.';
-            } else {
-                $user = wp_signon( array(
-                    'user_login'    => $username,
-                    'user_password' => $password,
-                    'remember'      => $remember,
-                ), is_ssl() );
-
-                if ( is_wp_error( $user ) ) {
-                    $error_msg = 'Correo electrónico o contraseña incorrectos.';
-                } else {
-                    wp_safe_redirect( $redirect_to );
-                    exit;
-                }
-            }
-        }
-    }
-
-    // Also show errors from query string (e.g. after password reset).
-    if ( empty( $error_msg ) ) {
-        $error_msg = cfd_get_login_error_message();
-    }
-
     ob_start();
-    if ( $error_msg ) {
-        echo '<div class="cd-login-error">' . esc_html( $error_msg ) . '</div>';
-    }
     ?>
     <form name="loginform" id="loginform" action="" method="post">
         <p class="login-username">
