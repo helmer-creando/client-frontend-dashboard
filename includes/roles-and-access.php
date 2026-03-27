@@ -184,17 +184,29 @@ function cfd_rescue_404_on_cfd_pages(): void {
         return;
     }
 
-    // The page exists but WP_Query missed it. Re-query directly.
+    // The page exists but WP_Query missed it (a plugin is filtering
+    // it out). Use get_page_by_path() which hits the DB directly,
+    // then inject the post into $wp_query WITHOUT re-running WP_Query
+    // (which would be filtered again by the same culprit).
     $page = get_page_by_path( $request );
     if ( ! $page || $page->post_status !== 'publish' ) {
         return;
     }
 
-    // Override the main query so WordPress renders the page.
     global $wp_query;
-    $wp_query = new \WP_Query( array(
-        'page_id' => $page->ID,
-    ) );
+    $wp_query->is_404     = false;
+    $wp_query->is_page    = true;
+    $wp_query->is_singular = true;
+    $wp_query->post       = $page;
+    $wp_query->posts      = array( $page );
+    $wp_query->found_posts = 1;
+    $wp_query->post_count  = 1;
+    $wp_query->queried_object    = $page;
+    $wp_query->queried_object_id = $page->ID;
+
+    // Reset global $post so template tags (the_title, the_content) work.
+    $GLOBALS['post'] = $page;
+    setup_postdata( $page );
 
     status_header( 200 );
 }
