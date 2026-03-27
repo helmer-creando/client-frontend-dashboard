@@ -600,9 +600,17 @@ function cfd_render_dynamic_content($content, $post = null, $context = 'text')
 
     // {cfd_client_logo}
     if (strpos($content, '{cfd_client_logo}') !== false) {
-        $logo_url = '';
         $settings = get_option('cfd_settings', array());
         $logo_id = isset($settings['client_logo_id']) ? absint($settings['client_logo_id']) : 0;
+
+        // When the entire content IS the tag, the caller is likely an Image
+        // element that needs the attachment ID (not a URL) so Bricks can
+        // build a responsive <img> via wp_get_attachment_image().
+        if (trim($content) === '{cfd_client_logo}' && $logo_id) {
+            return $logo_id;
+        }
+
+        $logo_url = '';
         if ($logo_id) {
             $url = wp_get_attachment_image_url($logo_id, 'full');
             $logo_url = $url ? esc_url($url) : '';
