@@ -316,6 +316,15 @@ function cfd_get_dashboard_view(): string
         return $view;
     }
 
+    // Safety guard: is_page() requires the main query to be set up.
+    // In Bricks builder AJAX/early contexts, global $wp_query may not exist yet.
+    // Return empty string to avoid PHP warnings and infinite loops.
+    global $wp_query;
+    if (!isset($wp_query) || !is_object($wp_query) || !did_action('wp')) {
+        // Don't cache this result — the query isn't ready yet.
+        return '';
+    }
+
     $config = cfd_get_config();
 
     // Not on the dashboard page → no dashboard view.
@@ -468,6 +477,7 @@ add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
 
 function cfd_bricks_conditions_result($result, $condition_key, $condition)
 {
+    // ─── "Has Manageable CPTs" condition ───────────────────────
     if ($condition_key === 'cfd_has_cpts') {
         $compare = isset($condition['compare']) ? $condition['compare'] : '==';
         $value = isset($condition['value']) ? $condition['value'] : 'true';
@@ -479,6 +489,20 @@ function cfd_bricks_conditions_result($result, $condition_key, $condition)
             return $has_cpts === $expected;
         }
         return $has_cpts !== $expected;
+    }
+
+    // ─── "Home View" condition ─────────────────────────────────
+    if ($condition_key === 'cfd_home_view') {
+        $compare = isset($condition['compare']) ? $condition['compare'] : '==';
+        $value = isset($condition['value']) ? $condition['value'] : 'true';
+
+        $is_home = cfd_is_dashboard_home();
+        $expected = ($value === 'true');
+
+        if ($compare === '==') {
+            return $is_home === $expected;
+        }
+        return $is_home !== $expected;
     }
 
     return $result;

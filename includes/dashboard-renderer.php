@@ -511,11 +511,24 @@ function cfd_render_page_cards_shortcode(): string
 
 /**
  * Helper function for Bricks builder conditions.
- * Usage in Bricks Condition: `{echo:cfd_has_manageable_cpts}` == 1
+ *
+ * Usage in Bricks:
+ *   - Native condition: "Has Manageable CPTs" (preferred)
+ *   - Echo tag: `{echo:cfd_has_manageable_cpts}` == 1 (requires whitelist)
+ *
  * Returns true if the user has manageable CPTs, false otherwise.
+ *
+ * @return bool
  */
 function cfd_has_manageable_cpts(): bool
 {
+    // Safety guard: In Bricks builder AJAX/early contexts, user functions
+    // may not be fully loaded yet. Return false to prevent errors.
+    // This is safe because the builder context doesn't need real user data.
+    if (!function_exists('is_user_logged_in') || !function_exists('current_user_can')) {
+        return false;
+    }
+
     if (!is_user_logged_in()) {
         return false;
     }
