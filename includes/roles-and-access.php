@@ -59,6 +59,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 // If you change capabilities below, bump CFD_CAPS_VERSION
 // and the sync function will update the role automatically.
 
+// ── Grant "read" on CFD pages for any logged-in user ──────
+//
+// WordPress returns a 404 for logged-in users whose role lacks
+// the "read" capability. Rather than requiring every custom role
+// to add "read" manually, we grant it dynamically whenever the
+// request targets the CFD login or dashboard pages.
+
+add_filter( 'user_has_cap', 'cfd_grant_read_on_cfd_pages', 10, 4 );
+
+function cfd_grant_read_on_cfd_pages( array $allcaps, array $caps, array $args, $user ): array {
+    if ( ! in_array( 'read', $caps, true ) ) {
+        return $allcaps;
+    }
+    if ( ! empty( $allcaps['read'] ) ) {
+        return $allcaps;
+    }
+
+    $config  = cfd_get_config();
+    $slugs   = array( $config['login_slug'], $config['dashboard_slug'] );
+    $request = trim( parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
+
+    if ( in_array( $request, $slugs, true ) ) {
+        $allcaps['read'] = true;
+    }
+
+    return $allcaps;
+}
+
 add_action( 'init', 'cfd_register_site_editor_role' );
 
 function cfd_register_site_editor_role(): void {
