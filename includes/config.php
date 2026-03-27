@@ -377,6 +377,15 @@ function cfd_is_dashboard_home(): bool
 //
 // ─────────────────────────────────────────────────────────
 
+// ─── Bricks Security: Whitelist functions for {echo:} tag ────────
+add_filter('bricks/code/echo_function_names', 'cfd_bricks_whitelist_functions');
+
+function cfd_bricks_whitelist_functions(array $allowed): array
+{
+    $allowed[] = 'cfd_has_manageable_cpts';
+    return $allowed;
+}
+
 /**
  * Add "Client Dashboard" to the Bricks conditions group list.
  */
@@ -417,6 +426,27 @@ function cfd_bricks_conditions_options(array $options): array
             ),
         ),
     );
+
+    $options[] = array(
+        'key' => 'cfd_has_cpts',
+        'label' => 'Has Manageable CPTs',
+        'group' => 'cfd',
+        'compare' => array(
+            'type' => 'select',
+            'options' => array(
+                '==' => 'is',
+                '!=' => 'is not',
+            ),
+        ),
+        'value' => array(
+            'type' => 'select',
+            'options' => array(
+                'true' => 'Yes (has CPTs)',
+                'false' => 'No (pages only)',
+            ),
+        ),
+    );
+
     return $options;
 }
 
@@ -438,23 +468,20 @@ add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
 
 function cfd_bricks_conditions_result($result, $condition_key, $condition)
 {
-    if ($condition_key !== 'cfd_home_view') {
-        return $result;
+    if ($condition_key === 'cfd_has_cpts') {
+        $compare = isset($condition['compare']) ? $condition['compare'] : '==';
+        $value = isset($condition['value']) ? $condition['value'] : 'true';
+
+        $has_cpts = cfd_has_manageable_cpts();
+        $expected = ($value === 'true');
+
+        if ($compare === '==') {
+            return $has_cpts === $expected;
+        }
+        return $has_cpts !== $expected;
     }
 
-    // Extract compare and value from the condition array.
-    $compare = isset($condition['compare']) ? $condition['compare'] : '==';
-    $value = isset($condition['value']) ? $condition['value'] : 'true';
-
-    $is_home = cfd_is_dashboard_home();
-    $expected = ($value === 'true');
-
-    if ($compare === '==') {
-        return $is_home === $expected;
-    }
-
-    // '!=' comparison.
-    return $is_home !== $expected;
+    return $result;
 }
 
 // ═══════════════════════════════════════════════════════════
