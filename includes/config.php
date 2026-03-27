@@ -387,7 +387,8 @@ function cfd_is_dashboard_home(): bool
 // ─────────────────────────────────────────────────────────
 
 // ─── Bricks Security: Whitelist functions for {echo:} tag ────────
-add_filter('bricks/code/echo_function_names', 'cfd_bricks_whitelist_functions');
+// TEMPORARILY DISABLED - Debug white screen issue
+// add_filter('bricks/code/echo_function_names', 'cfd_bricks_whitelist_functions');
 
 function cfd_bricks_whitelist_functions(array $allowed): array
 {
@@ -473,36 +474,61 @@ function cfd_bricks_conditions_options(array $options): array
  * @param array  $condition     The full condition array with 'compare' and 'value' keys.
  * @return bool
  */
-add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
+// TEMPORARILY DISABLED - Debug white screen issue
+// add_filter('bricks/conditions/result', 'cfd_bricks_conditions_result', 10, 3);
 
 function cfd_bricks_conditions_result($result, $condition_key, $condition)
 {
-    // ─── "Has Manageable CPTs" condition ───────────────────────
-    if ($condition_key === 'cfd_has_cpts') {
-        $compare = isset($condition['compare']) ? $condition['compare'] : '==';
-        $value = isset($condition['value']) ? $condition['value'] : 'true';
-
-        $has_cpts = cfd_has_manageable_cpts();
-        $expected = ($value === 'true');
-
-        if ($compare === '==') {
-            return $has_cpts === $expected;
-        }
-        return $has_cpts !== $expected;
+    // Only handle our own condition keys.
+    if (!in_array($condition_key, array('cfd_has_cpts', 'cfd_home_view'), true)) {
+        return $result;
     }
 
-    // ─── "Home View" condition ─────────────────────────────────
-    if ($condition_key === 'cfd_home_view') {
-        $compare = isset($condition['compare']) ? $condition['compare'] : '==';
-        $value = isset($condition['value']) ? $condition['value'] : 'true';
+    // Wrap in try-catch to prevent fatal errors from crashing the page.
+    try {
+        // ─── "Has Manageable CPTs" condition ───────────────────────
+        if ($condition_key === 'cfd_has_cpts') {
+            $compare = isset($condition['compare']) ? $condition['compare'] : '==';
+            $value = isset($condition['value']) ? $condition['value'] : 'true';
 
-        $is_home = cfd_is_dashboard_home();
-        $expected = ($value === 'true');
+            // Safety: check function exists before calling.
+            if (!function_exists('cfd_has_manageable_cpts')) {
+                return $result;
+            }
 
-        if ($compare === '==') {
-            return $is_home === $expected;
+            $has_cpts = cfd_has_manageable_cpts();
+            $expected = ($value === 'true');
+
+            if ($compare === '==') {
+                return $has_cpts === $expected;
+            }
+            return $has_cpts !== $expected;
         }
-        return $is_home !== $expected;
+
+        // ─── "Home View" condition ─────────────────────────────────
+        if ($condition_key === 'cfd_home_view') {
+            $compare = isset($condition['compare']) ? $condition['compare'] : '==';
+            $value = isset($condition['value']) ? $condition['value'] : 'true';
+
+            // Safety: check function exists before calling.
+            if (!function_exists('cfd_is_dashboard_home')) {
+                return $result;
+            }
+
+            $is_home = cfd_is_dashboard_home();
+            $expected = ($value === 'true');
+
+            if ($compare === '==') {
+                return $is_home === $expected;
+            }
+            return $is_home !== $expected;
+        }
+    } catch (\Throwable $e) {
+        // Log error if WP_DEBUG is on, but don't crash.
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('CFD Bricks condition error: ' . $e->getMessage());
+        }
+        return $result;
     }
 
     return $result;
