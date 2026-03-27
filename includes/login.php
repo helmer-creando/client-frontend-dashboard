@@ -73,14 +73,46 @@ function cfd_render_login_form_only(): string {
         ? esc_url( $_GET['redirect_to'] )
         : home_url( $config['login_redirect'] );
 
-    // We use a relative URL for the form action instead of site_url('wp-login.php')
-    // to prevent 301 redirects dropping POST data if the site domain/HTTPS
-    // settings are misconfigured (e.g. during a custom domain migration).
-    $login_url = '/wp-login.php';
+    // Handle login POST directly on this page (avoids wp-login.php 301 issues).
+    $error_msg = '';
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['cfd_login_nonce'] ) ) {
+        if ( ! wp_verify_nonce( $_POST['cfd_login_nonce'], 'cfd-login' ) ) {
+            $error_msg = 'Solicitud no válida. Intenta de nuevo.';
+        } else {
+            $username = sanitize_text_field( $_POST['log'] ?? '' );
+            $password = $_POST['pwd'] ?? '';
+            $remember = ! empty( $_POST['rememberme'] );
+
+            if ( empty( $username ) || empty( $password ) ) {
+                $error_msg = 'Por favor, introduce tu correo electrónico y contraseña.';
+            } else {
+                $user = wp_signon( array(
+                    'user_login'    => $username,
+                    'user_password' => $password,
+                    'remember'      => $remember,
+                ), is_ssl() );
+
+                if ( is_wp_error( $user ) ) {
+                    $error_msg = 'Correo electrónico o contraseña incorrectos.';
+                } else {
+                    wp_safe_redirect( $redirect_to );
+                    exit;
+                }
+            }
+        }
+    }
+
+    // Also show errors from query string (e.g. after password reset).
+    if ( empty( $error_msg ) ) {
+        $error_msg = cfd_get_login_error_message();
+    }
 
     ob_start();
+    if ( $error_msg ) {
+        echo '<div class="cd-login-error">' . esc_html( $error_msg ) . '</div>';
+    }
     ?>
-    <form name="loginform" id="loginform" action="<?php echo esc_url( $login_url ); ?>" method="post">
+    <form name="loginform" id="loginform" action="" method="post">
         <p class="login-username">
             <label for="user_login">Correo electrónico</label>
             <input type="text" name="log" id="user_login" class="input" value="" size="20" required />
@@ -93,9 +125,8 @@ function cfd_render_login_form_only(): string {
         <p class="login-submit">
             <input type="submit" name="wp-submit" id="wp-submit" class="button button-primary" value="Entrar a mi espacio ✨" />
             <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
-            <input type="hidden" name="testcookie" value="1" />
         </p>
-        <?php wp_nonce_field( 'cfd-login', '_wpnonce', true, true ); ?>
+        <?php wp_nonce_field( 'cfd-login', 'cfd_login_nonce' ); ?>
     </form>
     <?php
     return ob_get_clean();
