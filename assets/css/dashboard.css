@@ -313,12 +313,17 @@
        Must be the LEAST prominent action on the page.
        Hierarchy: Save (loud) → Preview (medium) → Delete (quiet) */
 .cd-delete-link {
+    display: none; /* Hide any stray delete links (like the one reported at top-right) */
     font-size: var(--text-xs, 0.75rem);
     color: red;
     text-decoration: none;
     transition: color 0.2s;
     cursor: pointer;
     border-bottom: 1px solid red;
+}
+
+.cd-editor__actions .cd-delete-link {
+    display: inline-block !important; /* Only show in the proper actions bar at the bottom */
 }
 
 .cd-delete-link:hover {
@@ -2576,6 +2581,56 @@
     margin-bottom: var(--space-l, 2rem) !important;
 }
 
+.kh-editor__header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: var(--space-l, 2rem) !important;
+    gap: 1.5rem !important;
+    border-bottom: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    padding-bottom: var(--space-m, 1.5rem);
+}
+
+.kh-editor__preview {
+    font-size: var(--text-s, 0.875rem) !important;
+    text-decoration: none !important;
+    color: var(--kh-on-surface, #242424) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.6rem 1.25rem !important;
+    border-radius: var(--radius-m, 20px) !important;
+    background: var(--kh-surface-container, #F5F3F1) !important;
+    border: 1px solid var(--kh-surface-container-highest, #E4E0D6) !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    font-weight: 600 !important;
+}
+
+.kh-editor__preview:hover {
+    background: var(--kh-surface-container-high, #EBE9E1) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--kh-elevation-1) !important;
+}
+
+/* ── ACF Field Typography Overrides ───────────────────── */
+.cd-acf-form .acf-label label {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: var(--kh-primary, #443B33) !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+}
+
+.cd-acf-form .acf-field-group .acf-label h2 {
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--kh-primary, #443B33) !important;
+    margin: 2rem 0 1rem 0 !important;
+}
+
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined' !important;
     font-weight: normal;
@@ -2647,8 +2702,11 @@
     position: relative;
     margin: var(--space-s, 0.75rem) 0;
     font-family: var(--font-primary, system-ui, sans-serif);
-    display: block;
-    min-height: 44px;
+    display: block !important;
+    visibility: visible !important;
+    min-height: 56px !important;
+    opacity: 1 !important;
+    overflow: visible !important;
 }
 
 .cfd-color-picker__toggle {

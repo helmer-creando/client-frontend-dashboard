@@ -235,6 +235,8 @@ function cfd_enqueue_dashboard_assets(): void
         '5.5.2',
         true
     );
+    // CDN Fallback for iro.js
+    wp_add_inline_script('cfd-iro', 'if(typeof iro === "undefined"){ var s = document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"; document.head.appendChild(s); }');
 
     // ACF field enhancements (color picker swap, Select2 adjustments, etc.)
     wp_enqueue_script(
@@ -916,8 +918,9 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 
     echo '<div class="cd-editor">';
-    echo '<div class="cd-editor__header">';
+    echo '<div class="cd-editor__header kh-editor__header">';
     echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver página online</a>';
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
@@ -927,7 +930,6 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         echo '</div>';
     }
 
-    echo '<p class="cd-editor__sub kh-editor__subtitle">Edita el contenido. Los cambios se verán reflejados inmediatamente después de guardar.</p>';
     cfd_maybe_render_view_hint( 'edit_page' );
 
     echo '<div class="cd-editor-form kh-editor__grid">';
@@ -949,10 +951,6 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     ));
 
     echo '</div>'; // End cd-editor-form
-
-    echo '<div class="cd-editor__actions" style="margin-top: var(--space-l, 2rem);">';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link"><span class="material-symbols-outlined">open_in_new</span> Ver página online</a>';
-    echo '</div>';
 
     echo '</div>'; // End cd-editor
     
@@ -1259,11 +1257,10 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
-    echo '<div class="cd-editor__header">';
+    echo '<div class="cd-editor__header kh-editor__header">';
     echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    
-    // Actions are moved below the form
-    echo '</div>'; // End cd-editor__header
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
+    echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
         echo '<div class="cd-success kh-editor__success">';
@@ -1278,7 +1275,6 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         echo '</div>';
     }
 
-    echo '<p class="cd-editor__sub kh-editor__subtitle">Edita el contenido de esta entrada.</p>';
     cfd_maybe_render_view_hint( 'edit_cpt' );
 
     // Extensibility hook: before the editor form (e.g., translation links).
@@ -1299,7 +1295,6 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
 
     // Actions moved here
     echo '<div class="cd-editor__actions" style="margin-top: var(--space-l, 2rem);">';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
 
     // ── Duplicate button ──
     $duplicate_url = add_query_arg(array(
