@@ -59,6 +59,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 // If you change capabilities below, bump CFD_CAPS_VERSION
 // and the sync function will update the role automatically.
 
+// ── TEMPORARY DIAGNOSTIC: ?cfd_debug=1 ────────────────────
+//
+// Visit /capitan/?cfd_debug=1 or /mi-espacio/?cfd_debug=1
+// to see a diagnostic dump. Only works for logged-in admins
+// or when the secret key matches. Remove after debugging.
+
+add_action( 'wp', 'cfd_debug_page_load', 999 );
+
+function cfd_debug_page_load(): void {
+    if ( ! isset( $_GET['cfd_debug'] ) ) {
+        return;
+    }
+
+    $config  = cfd_get_config();
+    $user    = wp_get_current_user();
+    $request = trim( parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
+    $page    = get_page_by_path( $request );
+
+    global $wp_query;
+
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    header( 'X-Robots-Tag: noindex' );
+
+    echo "=== CFD Debug Dump ===\n\n";
+
+    echo "-- Request --\n";
+    echo "URI:          " . ($_SERVER['REQUEST_URI'] ?? '(empty)') . "\n";
+    echo "Parsed path:  " . $request . "\n";
+    echo "Login slug:   " . $config['login_slug'] . "\n";
+    echo "Dash slug:    " . $config['dashboard_slug'] . "\n\n";
+
+    echo "-- User --\n";
+    echo "Logged in:    " . ( is_user_logged_in() ? 'yes' : 'no' ) . "\n";
+    echo "User ID:      " . $user->ID . "\n";
+    echo "Roles:        " . implode( ', ', $user->roles ) . "\n";
+    echo "Has read:     " . ( $user->has_cap( 'read' ) ? 'yes' : 'NO' ) . "\n";
+    echo "Has edit_pages: " . ( $user->has_cap( 'edit_pages' ) ? 'yes' : 'no' ) . "\n\n";
+
+    echo "-- All Capabilities --\n";
+    foreach ( $user->allcaps as $cap => $granted ) {
+        if ( $granted ) {
+            echo "  ✓ $cap\n";
+        }
+    }
+    echo "\n";
+
+    echo "-- Page Lookup --\n";
+    if ( $page ) {
+        echo "Found:        yes\n";
+        echo "Page ID:      " . $page->ID . "\n";
+        echo "Post status:  " . $page->post_status . "\n";
+        echo "Post type:    " . $page->post_type . "\n";
+    } else {
+        echo "Found:        NO (get_page_by_path returned null)\n";
+    }
+    echo "\n";
+
+    echo "-- WP_Query State --\n";
+    echo "is_404:       " . ( $wp_query->is_404() ? 'YES' : 'no' ) . "\n";
+    echo "is_page:      " . ( $wp_query->is_page() ? 'yes' : 'no' ) . "\n";
+    echo "is_singular:  " . ( $wp_query->is_singular() ? 'yes' : 'no' ) . "\n";
+    echo "found_posts:  " . $wp_query->found_posts . "\n";
+    echo "post_count:   " . $wp_query->post_count . "\n";
+    if ( ! empty( $wp_query->query ) ) {
+        echo "query:        " . json_encode( $wp_query->query ) . "\n";
+    }
+    echo "\n";
+
+    echo "-- Active Plugins --\n";
+    $plugins = get_option( 'active_plugins', array() );
+    foreach ( $plugins as $p ) {
+        echo "  " . basename( dirname( $p ) ) . "\n";
+    }
+
+    exit;
+}
+
 // ── Ensure CFD pages never 404 for logged-in users ────────
 //
 // Some environments (security plugins, caching layers, or roles
