@@ -508,6 +508,32 @@ function cfd_render_page_cards_shortcode(): string
 }
 
 /**
+ * Helper function for Bricks builder conditions.
+ * Usage in Bricks Condition: `{echo:cfd_has_manageable_cpts}` == 1
+ * Returns true if the user has manageable CPTs, false otherwise.
+ */
+function cfd_has_manageable_cpts(): bool
+{
+    if (!is_user_logged_in()) {
+        return false;
+    }
+
+    $config = cfd_get_user_config();
+    if (empty($config['manageable_cpts'])) {
+        return false;
+    }
+
+    foreach ($config['manageable_cpts'] as $cpt_slug) {
+        $cpt_obj = get_post_type_object($cpt_slug);
+        if ($cpt_obj && current_user_can($cpt_obj->cap->edit_posts)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * [cfd_cpt_cards] — Renders the CPT card grid.
  *
  * Outputs clickable cards for each manageable CPT, linking to
@@ -533,8 +559,6 @@ function cfd_render_cpt_cards_shortcode(): string
 
     ob_start();
 
-    echo '<h2 class="cd-home__title kh-content__title" style="margin-top: var(--space-xl, 3rem); margin-bottom: var(--space-xs, 0.5rem);">Tu Contenido</h2>';
-    echo '<p class="cd-home__subtitle kh-editor__subtitle" style="margin-bottom: var(--space-m, 1.5rem);">Actualiza tus noticias, servicios o equipo.</p>';
     echo '<div class="cd-page-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">';
 
     foreach ($config['manageable_cpts'] as $cpt_slug) {

@@ -297,21 +297,6 @@ function cfd_accent_text_acf_filter( $value ) {
     return cfd_render_accent_text( $value );
 }
 
-/**
- * Show a UX hint below ACF text and textarea fields in the editor.
- *
- * Appends a small description reminding the client they can use
- * {curly braces} to highlight accent words.
- */
-add_action( 'acf/render_field/type=text', 'cfd_accent_text_field_hint', 20 );
-add_action( 'acf/render_field/type=textarea', 'cfd_accent_text_field_hint', 20 );
-
-function cfd_accent_text_field_hint( $field ) {
-    echo '<p class="description" style="margin-top:4px;">';
-    echo '💡 Usa {llaves} para resaltar una palabra. Ejemplo: Viaje a {Bolivia}';
-    echo '</p>';
-}
-
 // ═══════════════════════════════════════════════════════════
 // v3.0 — DASHBOARD VIEW DETECTION
 // ═══════════════════════════════════════════════════════════
