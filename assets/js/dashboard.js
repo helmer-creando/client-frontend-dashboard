@@ -135,17 +135,18 @@ document.addEventListener('click', function (e) {
         icon.innerHTML = '<svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="28" cy="28" r="28" fill="#2D5A3D"/><path d="M17 28.5L24.5 36L39 21" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         modal.appendChild(icon);
 
-        // Collect all success messages
-        var previewUrl = null;
+        // Find preview URL from editor header (outside success message)
+        var previewLink = document.querySelector('.cd-preview-link, .kh-editor__preview');
+        var previewUrl = previewLink ? previewLink.href : null;
         var hasUpdatedMsg = false;
 
+        // Collect all success messages
         successEls.forEach(function (el) {
             var msg = document.createElement('div');
             msg.className = 'cd-modal__message';
 
-            var textSpan = el.querySelector('span');
-            var link = el.querySelector('a');
-
+            var textSpan = el.querySelector('span:not(.material-symbols-outlined)');
+            
             if (textSpan) {
                 var p = document.createElement('p');
                 p.className = 'cd-modal__text';
@@ -158,9 +159,6 @@ document.addEventListener('click', function (e) {
                     p.textContent = textSpan.textContent.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}✅🗑️\s]+/u, '').trim();
                 }
                 msg.appendChild(p);
-            }
-            if (link) {
-                previewUrl = link.href;
             }
 
             modal.appendChild(msg);

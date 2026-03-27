@@ -2158,10 +2158,15 @@
     }
 
     /* Center the editor header content on mobile */
-    .cd-editor__header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+    .cd-editor__header,
+    .kh-editor__header {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+
+    .kh-editor__title {
+        text-align: center !important;
     }
 
     .cd-editor__actions {
@@ -2170,6 +2175,12 @@
 
     .cd-editor__sub {
         text-align: center;
+    }
+
+    /* Ensure view hint is centered and has proper spacing on mobile */
+    .cd-view-hint {
+        text-align: center !important;
+        margin: var(--space-m, 1.5rem) 0 !important;
     }
 
     .cd-cpt-list__header {
@@ -3400,14 +3411,17 @@
         width: 280px !important;
         max-width: 85vw !important;
         z-index: 9999 !important;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow-y: auto;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        overflow-y: auto !important;
+        /* Ensure sidebar content is visible */
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     /* Sidebar visible when open */
     .cfd-sidebar.is-open {
-        transform: translateX(0);
+        transform: translateX(0) !important;
     }
 }
 
