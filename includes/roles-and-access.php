@@ -127,6 +127,34 @@ function cfd_debug_page_load(): void {
     }
     echo "\n";
 
+    echo "-- Query Filters (who is modifying WP_Query) --\n";
+    global $wp_filter;
+    $hooks = array( 'pre_get_posts', 'posts_where', 'posts_join', 'posts_request', 'posts_results', 'the_posts', 'posts_clauses' );
+    foreach ( $hooks as $hook ) {
+        if ( ! isset( $wp_filter[ $hook ] ) ) {
+            continue;
+        }
+        echo "\n  [$hook]\n";
+        foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
+            foreach ( $callbacks as $id => $cb ) {
+                $name = '(unknown)';
+                if ( is_string( $cb['function'] ) ) {
+                    $name = $cb['function'];
+                } elseif ( is_array( $cb['function'] ) && count( $cb['function'] ) === 2 ) {
+                    $obj  = $cb['function'][0];
+                    $cls  = is_object( $obj ) ? get_class( $obj ) : (string) $obj;
+                    $name = $cls . '::' . $cb['function'][1];
+                } elseif ( $cb['function'] instanceof \Closure ) {
+                    $ref  = new \ReflectionFunction( $cb['function'] );
+                    $file = str_replace( ABSPATH, '', $ref->getFileName() );
+                    $name = "Closure@{$file}:{$ref->getStartLine()}";
+                }
+                echo "    [{$priority}] {$name}\n";
+            }
+        }
+    }
+    echo "\n";
+
     echo "-- Active Plugins --\n";
     $plugins = get_option( 'active_plugins', array() );
     foreach ( $plugins as $p ) {
