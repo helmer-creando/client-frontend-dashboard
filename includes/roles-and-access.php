@@ -59,12 +59,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 // If you change capabilities below, bump CFD_CAPS_VERSION
 // and the sync function will update the role automatically.
 
-// ── Grant "read" on CFD pages for any logged-in user ──────
+// ── Ensure CFD pages never 404 for logged-in users ────────
 //
-// WordPress returns a 404 for logged-in users whose role lacks
-// the "read" capability. Rather than requiring every custom role
-// to add "read" manually, we grant it dynamically whenever the
-// request targets the CFD login or dashboard pages.
+// Some environments (security plugins, caching layers, or roles
+// without the "read" capability) can cause WordPress to return
+// a 404 for logged-in users on the login or dashboard pages.
+// We fix this at two levels:
+//
+// 1. Grant "read" dynamically via user_has_cap so WP_Query
+//    doesn't reject the page during capability checks.
+// 2. As a fallback, rescue the 404 on template_redirect by
+//    re-querying the page directly when we know it exists.
 
 add_filter( 'user_has_cap', 'cfd_grant_read_on_cfd_pages', 10, 4 );
 
@@ -85,6 +90,36 @@ function cfd_grant_read_on_cfd_pages( array $allcaps, array $caps, array $args, 
     }
 
     return $allcaps;
+}
+
+add_action( 'template_redirect', 'cfd_rescue_404_on_cfd_pages', 1 );
+
+function cfd_rescue_404_on_cfd_pages(): void {
+    if ( ! is_404() ) {
+        return;
+    }
+
+    $config  = cfd_get_config();
+    $slugs   = array( $config['login_slug'], $config['dashboard_slug'] );
+    $request = trim( parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
+
+    if ( ! in_array( $request, $slugs, true ) ) {
+        return;
+    }
+
+    // The page exists but WP_Query missed it. Re-query directly.
+    $page = get_page_by_path( $request );
+    if ( ! $page || $page->post_status !== 'publish' ) {
+        return;
+    }
+
+    // Override the main query so WordPress renders the page.
+    global $wp_query;
+    $wp_query = new \WP_Query( array(
+        'page_id' => $page->ID,
+    ) );
+
+    status_header( 200 );
 }
 
 add_action( 'init', 'cfd_register_site_editor_role' );
