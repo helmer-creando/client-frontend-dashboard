@@ -3324,15 +3324,21 @@
     top: var(--space-s, 1rem);
     left: var(--space-s, 1rem);
     z-index: 10000;
-    width: 44px;
     height: 44px;
-    padding: 0;
+    padding: 0 var(--space-s, 1rem);
     border: none;
-    border-radius: var(--radius-s, 8px);
+    border-radius: 100px; /* Fully rounded pill shape */
     background: var(--bg-ultra-dark, #1a1a2e);
     color: #fff;
     cursor: pointer;
     transition: background 0.2s ease, transform 0.2s ease;
+    /* Flexbox for icon + text layout */
+    display: none;
+    align-items: center;
+    gap: var(--space-xs, 0.5rem);
+    font-size: var(--text-s, 0.875rem);
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 
 .cfd-mobile-toggle:hover {
@@ -3349,23 +3355,29 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    width: 100%;
-    height: 100%;
+    gap: 4px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
 }
 
 .cfd-mobile-toggle__line {
     display: block;
-    width: 20px;
+    width: 18px;
     height: 2px;
     background: #fff;
     border-radius: 1px;
     transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
+/* Label text */
+.cfd-mobile-toggle__label {
+    white-space: nowrap;
+}
+
 /* Transform to X when sidebar is open */
 .cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(1) {
-    transform: translateY(7px) rotate(45deg);
+    transform: translateY(6px) rotate(45deg);
 }
 
 .cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(2) {
@@ -3373,7 +3385,7 @@
 }
 
 .cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(3) {
-    transform: translateY(-7px) rotate(-45deg);
+    transform: translateY(-6px) rotate(-45deg);
 }
 
 /* ── Sidebar overlay (backdrop) ── */
@@ -3396,8 +3408,8 @@
 
 /* ── Sidebar mobile state ──
    The sidebar container in Bricks should have .cfd-sidebar class.
-   On mobile, it's hidden off-screen by default. */
-@media (max-width: 991px) {
+   On tablet and mobile (≤1024px), it's hidden off-screen by default. */
+@media (max-width: 1024px) {
     .cfd-mobile-toggle {
         display: flex;
     }

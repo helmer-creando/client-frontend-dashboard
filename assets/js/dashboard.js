@@ -259,20 +259,20 @@ document.addEventListener('click', function (e) {
 })();
 
 /* ── Mobile sidebar toggle ─────────────────────────────
-   Creates hamburger toggle button + overlay for mobile.
+   Creates hamburger toggle button + overlay for mobile/tablet.
    Works with Bricks sidebar that has .cfd-sidebar class.    */
 (function () {
     var isMobile = function () {
-        return window.innerWidth <= 991;
+        return window.innerWidth <= 1024;
     };
 
-    // Only initialize on mobile
+    // Only initialize on mobile/tablet
     if (!isMobile()) return;
 
     var sidebar = document.querySelector('.cfd-sidebar');
     if (!sidebar) return;
 
-    // Create toggle button
+    // Create toggle button with icon + "Menú" label
     var toggleBtn = document.createElement('button');
     toggleBtn.className = 'cfd-mobile-toggle';
     toggleBtn.setAttribute('aria-label', 'Abrir menú');
@@ -281,7 +281,8 @@ document.addEventListener('click', function (e) {
         '<span class="cfd-mobile-toggle__line"></span>' +
         '<span class="cfd-mobile-toggle__line"></span>' +
         '<span class="cfd-mobile-toggle__line"></span>' +
-        '</span>';
+        '</span>' +
+        '<span class="cfd-mobile-toggle__label">Menú</span>';
 
     // Create overlay
     var overlay = document.createElement('div');
