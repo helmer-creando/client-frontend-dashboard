@@ -212,8 +212,38 @@ function cfd_enqueue_dashboard_assets(): void
         return;
     }
 
+    // Material Symbols Outlined (for Kindred Hearth design system)
+    wp_enqueue_style(
+        'cfd-material-symbols',
+        'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap',
+        array(),
+        null
+    );
+
     // WordPress media uploader (needed for ACF image fields).
     wp_enqueue_media();
+
+    // WordPress color picker (required for ACF to render color picker on frontend).
+    wp_enqueue_style('wp-color-picker');
+    wp_enqueue_script('wp-color-picker');
+
+    // iro.js — touch-friendly color picker replacement (bundled, ~28KB).
+    wp_enqueue_script(
+        'cfd-iro',
+        CFD_URL . 'assets/js/vendor/iro.min.js',
+        array(),
+        '5.5.2',
+        true
+    );
+
+    // ACF field enhancements (color picker swap, Select2 adjustments, etc.)
+    wp_enqueue_script(
+        'cfd-acf-fields',
+        CFD_URL . 'assets/js/acf-fields.js',
+        array('wp-color-picker', 'cfd-iro'),
+        CFD_VERSION,
+        true
+    );
 
     // Dashboard JS (extracted from inline <script> in original).
     wp_enqueue_script(
@@ -367,6 +397,11 @@ function cfd_render_sidebar_nav(): string
                 continue;
             }
 
+            // Check if user has permission to edit this CPT.
+            if (!current_user_can($cpt_obj->cap->edit_posts)) {
+                continue;
+            }
+
             // Resolve icon: Dashicon class, SVG URL, or fallback.
             $icon_html = cfd_get_cpt_icon_html($cpt_obj);
 
@@ -498,13 +533,21 @@ function cfd_render_cpt_cards_shortcode(): string
 
     ob_start();
 
-    echo '<div class="cd-page-grid">';
+    echo '<h2 class="cd-home__title kh-content__title" style="margin-top: var(--space-xl, 3rem); margin-bottom: var(--space-xs, 0.5rem);">Tu Contenido</h2>';
+    echo '<p class="cd-home__subtitle kh-editor__subtitle" style="margin-bottom: var(--space-m, 1.5rem);">Actualiza tus noticias, servicios o equipo.</p>';
+    echo '<div class="cd-page-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">';
 
     foreach ($config['manageable_cpts'] as $cpt_slug) {
         $cpt_obj = get_post_type_object($cpt_slug);
         if (!$cpt_obj) {
             continue;
         }
+
+        // Check if user has permission to edit this CPT.
+        if (!current_user_can($cpt_obj->cap->edit_posts)) {
+            continue;
+        }
+
         $manage_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
 
         // Get the CPT's assigned icon, fallback to a default CPT icon
@@ -694,6 +737,24 @@ function cfd_maybe_render_view_hint( $view, $cpt_label = '' ): void {
     }
 }
 
+/**
+ * Renders the gold "Concierge Tip" card used across the redesign.
+ *
+ * @param string $title The tip heading.
+ * @param string $text  The tip body text.
+ */
+function cfd_render_concierge_tip( string $title, string $text ): void {
+    echo '<div class="kh-tip-card">';
+    echo '  <div class="kh-tip-card__icon">';
+    echo '    <span class="material-symbols-outlined kh-icon--filled">lightbulb</span>';
+    echo '  </div>';
+    echo '  <div>';
+    echo '    <h3 class="kh-tip-card__title">' . esc_html( $title ) . '</h3>';
+    echo '    <p class="kh-tip-card__text">' . esc_html( $text ) . '</p>';
+    echo '  </div>';
+    echo '</div>';
+}
+
 // ═══════════════════════════════════════════════════════════
 // 5. DASHBOARD HOME — List of editable pages + CPTs
 // ═══════════════════════════════════════════════════════════
@@ -717,8 +778,8 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
 
     echo '<div class="cd-home">';
 
-    echo '<h2 class="cd-home__title">Tus Páginas</h2>';
-    echo '<p class="cd-home__subtitle">Haz clic en cualquier página para editar su contenido.</p>';
+    echo '<h2 class="cd-home__title kh-content__title" style="margin-bottom: var(--space-xs, 0.5rem);">Tus Páginas</h2>';
+    echo '<p class="cd-home__subtitle kh-editor__subtitle" style="margin-bottom: var(--space-m, 1.5rem);">Haz clic en cualquier página para editar su contenido.</p>';
 
     // Debug mode — only visible to admins when WP_DEBUG is on.
     if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options')) {
@@ -733,46 +794,51 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
         echo '<p style="color: var(--text-dark-muted, #8A817A); font-style: italic;">Aún no hay páginas editables.</p>';
     }
 
-    echo '<div class="cd-page-grid">';
+    echo '<div class="cd-page-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">';
 
     foreach ($pages as $page) {
         $edit_url = add_query_arg(array('edit' => 'page', 'id' => $page->ID), $dashboard_url);
+        $view_url = get_permalink($page->ID);
+        $thumb_url = get_the_post_thumbnail_url($page->ID, 'medium_large');
+        
+        $modified_ts = get_the_modified_date('U', $page);
+        $time_ago = human_time_diff($modified_ts, current_time('timestamp'));
 
-        echo '<a href="' . esc_url($edit_url) . '" class="cd-page-card">';
-        echo '  <span class="cd-page-card__icon"><span class="dashicons dashicons-admin-page"></span></span>';
-        echo '  <span class="cd-page-card__title">' . esc_html($page->post_title) . '</span>';
-        echo '  <span class="cd-page-card__hint">Editar →</span>';
-        echo '</a>';
+        echo '<div class="kh-page-card">';
+        echo '  <div class="kh-page-card__image">';
+        if ($thumb_url) {
+            echo '    <img src="' . esc_url($thumb_url) . '" alt="' . esc_attr($page->post_title) . '" />';
+        } else {
+            // Placeholder pattern for pages without a featured image
+            echo '    <div class="kh-page-card__placeholder">';
+            echo '      <span class="material-symbols-outlined">web</span>';
+            echo '    </div>';
+        }
+        
+        // Add a badge if it's the home page
+        if (get_option('page_on_front') == $page->ID) {
+            echo '    <span class="kh-page-card__badge">Principal</span>';
+        }
+        echo '  </div>'; // End kh-page-card__image
+        
+        echo '  <div class="kh-page-card__header">';
+        echo '    <h2 class="kh-page-card__title">' . esc_html($page->post_title) . '</h2>';
+        echo '    <a class="kh-page-card__view" href="' . esc_url($view_url) . '" target="_blank">';
+        echo '      <span class="material-symbols-outlined">open_in_new</span> Ver en línea';
+        echo '    </a>';
+        echo '  </div>'; // End kh-page-card__header
+        
+        echo '  <p class="kh-page-card__meta">Último cambio: hace ' . esc_html($time_ago) . '</p>';
+        echo '  <a href="' . esc_url($edit_url) . '" class="kh-page-card__btn">';
+        echo '    <span class="material-symbols-outlined kh-icon--filled">edit</span> Editar esta página';
+        echo '  </a>';
+        echo '</div>'; // End kh-page-card
     }
 
     echo '</div>';
 
     // CPT sections
-    if (!empty($config['manageable_cpts'])) {
-        echo '<h2 class="cd-home__title" style="margin-top: var(--space-l, 2rem);">Tu Contenido</h2>';
-        echo '<div class="cd-page-grid">';
-
-        foreach ($config['manageable_cpts'] as $cpt_slug) {
-            $cpt_obj = get_post_type_object($cpt_slug);
-            if (!$cpt_obj) {
-                continue;
-            }
-            $manage_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
-
-            $icon = 'dashicons-admin-post';
-            if (!empty($cpt_obj->menu_icon) && strpos($cpt_obj->menu_icon, 'dashicons-') === 0) {
-                $icon = esc_attr($cpt_obj->menu_icon);
-            }
-
-            echo '<a href="' . esc_url($manage_url) . '" class="cd-page-card">';
-            echo '  <span class="cd-page-card__icon"><span class="dashicons ' . $icon . '"></span></span>';
-            echo '  <span class="cd-page-card__title">' . esc_html($cpt_obj->labels->name) . '</span>';
-            echo '  <span class="cd-page-card__hint">Administrar →</span>';
-            echo '</a>';
-        }
-
-        echo '</div>';
-    }
+    echo '</div>'; // End cd-page-grid
 
     // ── Quick Access Links (only if configured) ──
     $quick_links_html = cfd_render_quick_links_shortcode();
@@ -823,40 +889,52 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         $dashboard_url
     );
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link">← Volver al inicio</a>';
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header">';
-    echo '  <h2 class="cd-editor__title">' . esc_html($post->post_title) . '</h2>';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link">Ver página ↗</a>';
+    echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
-        echo '<div class="cd-success">';
-        echo '  <span>Cambios guardados</span>';
-        echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link" style="margin-left: 0.5rem;">Ver página ↗</a>';
+        echo '<div class="cd-success kh-editor__success">';
+        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  <span>¡Tus cambios han sido guardados!</span>';
         echo '</div>';
     }
 
-    echo '<p class="cd-editor__sub">Edita el contenido. Los cambios se verán reflejados inmediatamente después de guardar.</p>';
+    echo '<p class="cd-editor__sub kh-editor__subtitle">Edita el contenido. Los cambios se verán reflejados inmediatamente después de guardar.</p>';
     cfd_maybe_render_view_hint( 'edit_page' );
+
+    echo '<div class="cd-editor-form kh-editor__grid">';
+    
+    // Editor tips
+    cfd_render_concierge_tip( 'Color de Acento', 'Puedes usar {llaves} alrededor de las palabras importantes en los textos para aplicar tu color de marca (ejemplo: Nuestro equipo {profesional}).' );
 
     acf_form(array(
         'post_id' => $post_id,
         'post_title' => false,
         'post_content' => false,
         'field_groups' => $field_groups,
-        'submit_value' => 'Guardar cambios',
+        'submit_value' => 'Guardar mis cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn">💾 Guardar cambios</button>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
         'html_submit_spinner' => '<span class="cd-spinner"></span>',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
+    echo '</div>'; // End cd-editor-form
+
+    echo '<div class="cd-editor__actions" style="margin-top: var(--space-l, 2rem);">';
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link"><span class="material-symbols-outlined">open_in_new</span> Ver página online</a>';
     echo '</div>';
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom">← Volver al inicio</a>';
+    echo '</div>'; // End cd-editor
+    
+    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
+
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -873,21 +951,23 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     $dashboard_url = cfd_get_dashboard_url();
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link">← Volver al inicio</a>';
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 
     if (isset($_GET['trashed']) && $_GET['trashed'] === 'true') {
-        echo '<div class="cd-success"><span>Entrada eliminada correctamente</span></div>';
+        echo '<div class="cd-success kh-editor__success"><span class="material-symbols-outlined kh-icon--filled">check_circle</span> <span>Entrada eliminada correctamente</span></div>';
     }
     if (isset($_GET['created']) && $_GET['created'] === 'true') {
-        echo '<div class="cd-success"><span>Entrada creada con éxito</span></div>';
+        echo '<div class="cd-success kh-editor__success"><span class="material-symbols-outlined kh-icon--filled">check_circle</span> <span>Entrada creada con éxito</span></div>';
     }
 
     echo '<div class="cd-cpt-list">';
     echo '<div class="cd-cpt-list__header">';
-    echo '  <h2 class="cd-cpt-list__title">' . esc_html($cpt_obj->labels->name) . '</h2>';
+    echo '  <h1 class="cd-cpt-list__title kh-content__title">' . esc_html($cpt_obj->labels->name) . '</h1>';
 
     $create_url = add_query_arg(array('create' => $cpt_slug), $dashboard_url);
-    echo '  <a href="' . esc_url($create_url) . '" class="cd-add-btn">+ Agregar nuevo</a>';
+    echo '  <a href="' . esc_url($create_url) . '" class="cd-add-btn kh-content__add">';
+    echo '    <span class="material-symbols-outlined kh-icon--filled">add_circle</span> Agregar nuevo';
+    echo '  </a>';
     echo '</div>';
     cfd_maybe_render_view_hint( 'manage', $cpt_obj->labels->name );
 
@@ -1013,7 +1093,12 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             $query->the_post();
             $p = get_post();
             $edit_url = add_query_arg(array('edit' => $cpt_slug, 'id' => $p->ID), $dashboard_url);
-            $view_url = get_permalink($p->ID);
+            $trash_url = add_query_arg(array(
+                'action'   => 'trash',
+                'id'       => $p->ID,
+                '_wpnonce' => wp_create_nonce('cfd_trash_' . $p->ID),
+                'manage'   => $cpt_slug,
+            ), $dashboard_url);
 
             // Extensibility hook: allow addons to add badges/info to CPT cards.
             $card_badges = apply_filters( 'cfd_cpt_card_badges', array(), $p, $cpt_slug );
@@ -1022,16 +1107,38 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             $modified_ts = get_the_modified_date('U', $p);
             $time_ago = human_time_diff($modified_ts, current_time('timestamp'));
 
-            echo '<a href="' . esc_url($edit_url) . '" class="cd-cpt-card">';
-            echo '  <span class="cd-cpt-card__body">';
-            echo '    <span class="cd-cpt-card__title">' . esc_html($p->post_title) . '</span>';
-            echo '    <span class="cd-cpt-card__meta">Editado hace ' . esc_html($time_ago) . '</span>';
+            // Post date for badge.
+            $month = get_the_date('M', $p);
+            $day   = get_the_date('d', $p);
+
+            echo '<div class="cd-cpt-card kh-content-item">';
+            
+            echo '  <div class="kh-content-item__left">';
+            echo '    <div class="kh-content-item__date">';
+            echo '      <span class="kh-content-item__date-month">' . esc_html($month) . '</span>';
+            echo '      <span class="kh-content-item__date-day">' . esc_html($day) . '</span>';
+            echo '    </div>';
+            echo '    <div class="kh-content-item__info">';
+            echo '      <h3 class="kh-content-item__title">' . esc_html($p->post_title) . '</h3>';
+            echo '      <p class="kh-content-item__meta">Editado hace ' . esc_html($time_ago) . '</p>';
             if ( ! empty( $card_badges ) ) {
-                echo '    <span class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</span>';
+                echo '      <div class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</div>';
             }
-            echo '  </span>';
-            echo '  <span class="cd-cpt-card__view" data-href="' . esc_url($view_url) . '">Ver ↗</span>';
-            echo '</a>';
+            echo '    </div>';
+            echo '  </div>'; // kh-content-item__left
+            
+            echo '  <div class="kh-content-item__actions">';
+            echo '    <a href="' . esc_url($edit_url) . '" class="cd-cpt-card__edit kh-content-item__edit">';
+            echo '      <span class="material-symbols-outlined">edit</span> Editar';
+            echo '    </a>';
+            if (current_user_can('delete_post', $p->ID)) {
+                echo '    <a href="' . esc_url($trash_url) . '" class="cd-cpt-card__delete kh-content-item__delete" onclick="return confirm(\'¿Estás seguro de que deseas eliminar esta entrada?\');">';
+                echo '      <span class="material-symbols-outlined">delete</span>';
+                echo '    </a>';
+            }
+            echo '  </div>'; // kh-content-item__actions
+            
+            echo '</div>'; // End kh-content-item
         }
         wp_reset_postdata();
         echo '</div>';
@@ -1047,38 +1154,50 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 $base_args['buscar'] = $search;
             }
 
-            echo '<nav class="cd-cpt-pagination" aria-label="Paginación">';
+            echo '<nav class="cd-cpt-pagination kh-pagination" aria-label="Paginación">';
 
             // ← Previous
             if ($pag > 1) {
                 $prev_args = $base_args;
                 $prev_args['pag'] = $pag - 1;
                 $prev_url = add_query_arg($prev_args, $dashboard_url);
-                echo '<a href="' . esc_url($prev_url) . '" class="cd-cpt-pagination__link">← Anterior</a>';
+                echo '<a href="' . esc_url($prev_url) . '" class="cd-cpt-pagination__link kh-pagination__link"><span class="material-symbols-outlined">chevron_left</span> Anterior</a>';
             }
             else {
-                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled">← Anterior</span>';
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled"><span class="material-symbols-outlined">chevron_left</span> Anterior</span>';
             }
 
             // Page indicator
-            echo '<span class="cd-cpt-pagination__current">Página ' . $pag . ' de ' . $total_pages . '</span>';
+            echo '<span class="cd-cpt-pagination__current kh-pagination__current">Página ' . $pag . ' de ' . $total_pages . '</span>';
 
             // Next →
             if ($pag < $total_pages) {
                 $next_args = $base_args;
                 $next_args['pag'] = $pag + 1;
                 $next_url = add_query_arg($next_args, $dashboard_url);
-                echo '<a href="' . esc_url($next_url) . '" class="cd-cpt-pagination__link">Siguiente →</a>';
+                echo '<a href="' . esc_url($next_url) . '" class="cd-cpt-pagination__link kh-pagination__link">Siguiente <span class="material-symbols-outlined">chevron_right</span></a>';
             }
             else {
-                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled">Siguiente →</span>';
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled">Siguiente <span class="material-symbols-outlined">chevron_right</span></span>';
             }
 
             echo '</nav>';
         }
     }
 
+    // Help banner at the bottom of the CPT list
+    echo '<div class="kh-help-banner">';
+    echo '  <div class="kh-help-banner__icon">';
+    echo '    <span class="material-symbols-outlined">auto_awesome</span>';
+    echo '  </div>';
+    echo '  <div class="kh-help-banner__content">';
+    echo '    <h3 class="kh-help-banner__title">¿Necesitas ayuda?</h3>';
+    echo '    <p class="kh-help-banner__text">Si no encuentras lo que buscas o tienes problemas para editar tu contenido, tu equipo de diseño está a un clic de distancia.</p>';
+    echo '    <a href="mailto:soporte@autentiweb.com" class="kh-help-banner__btn"><span class="material-symbols-outlined">mail</span> Contactar soporte</a>';
+    echo '  </div>';
     echo '</div>';
+
+    echo '</div>'; // End cd-cpt-list
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1113,13 +1232,50 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         $dashboard_url
     );
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link">← Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header">';
-    echo '  <h2 class="cd-editor__title">' . esc_html($post->post_title) . '</h2>';
-    echo '  <div class="cd-editor__actions">';
-    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link">Ver entrada ↗</a>';
+    echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
+    
+    // Actions are moved below the form
+    echo '</div>'; // End cd-editor__header
+
+    if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">';
+        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  <span>¡Tus cambios han sido guardados!</span>';
+        echo '</div>';
+    }
+    if (isset($_GET['duplicated']) && $_GET['duplicated'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">';
+        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  <span>Contenido duplicado. Puedes editarlo a continuación.</span>';
+        echo '</div>';
+    }
+
+    echo '<p class="cd-editor__sub kh-editor__subtitle">Edita el contenido de esta entrada.</p>';
+    cfd_maybe_render_view_hint( 'edit_cpt' );
+
+    // Extensibility hook: before the editor form (e.g., translation links).
+    do_action( 'cfd_editor_before_form', $post, $cpt_slug );
+
+    acf_form(array(
+        'post_id' => $post_id,
+        'post_title' => true,
+        'post_content' => false,
+        'field_groups' => $field_groups,
+        'submit_value' => 'Guardar mis cambios',
+        'updated_message' => false,
+        'return' => $return_url,
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
+        'html_submit_spinner' => '<span class="cd-spinner"></span>',
+        'form_attributes' => array('class' => 'cd-acf-form'),
+    ));
+
+    // Actions moved here
+    echo '<div class="cd-editor__actions" style="margin-top: var(--space-l, 2rem);">';
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
 
     // ── Duplicate button ──
     $duplicate_url = add_query_arg(array(
@@ -1129,7 +1285,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     ), $dashboard_url);
 
     echo '  <a href="' . esc_url($duplicate_url) . '" class="cd-duplicate-btn">';
-    echo '    <span class="dashicons dashicons-admin-page"></span> Duplicar';
+    echo '    <span class="material-symbols-outlined">file_copy</span> Duplicar';
     echo '  </a>';
 
     if (current_user_can('delete_post', $post_id)) {
@@ -1150,47 +1306,16 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         echo '    </span>';
         echo '  </span>';
     }
-
-    echo '  </div>';
-    echo '</div>';
-
-    if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
-        echo '<div class="cd-success">';
-        echo '  <span>Cambios guardados</span>';
-        echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link" style="margin-left: 0.5rem;">Ver entrada ↗</a>';
-        echo '</div>';
-    }
-    if (isset($_GET['duplicated']) && $_GET['duplicated'] === 'true') {
-        echo '<div class="cd-success">';
-        echo '  <span>Contenido duplicado. Puedes editarlo a continuación.</span>';
-        echo '</div>';
-    }
-
-    echo '<p class="cd-editor__sub">Edita el contenido de esta entrada.</p>';
-    cfd_maybe_render_view_hint( 'edit_cpt' );
-
-    // Extensibility hook: before the editor form (e.g., translation links).
-    do_action( 'cfd_editor_before_form', $post, $cpt_slug );
-
-    acf_form(array(
-        'post_id' => $post_id,
-        'post_title' => true,
-        'post_content' => false,
-        'field_groups' => $field_groups,
-        'submit_value' => 'Guardar cambios',
-        'updated_message' => false,
-        'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn">💾 Guardar cambios</button>',
-        'html_submit_spinner' => '<span class="cd-spinner"></span>',
-        'form_attributes' => array('class' => 'cd-acf-form'),
-    ));
-
+    
     // Extensibility hook: after the editor form, before actions.
     do_action( 'cfd_editor_after_form', $post, $cpt_slug );
 
-    echo '</div>';
+    echo '  </div>'; // End cd-editor__actions
+    echo '</div>'; // End cd-editor
+    
+    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom">← Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1209,11 +1334,11 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
     $back_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
     $return_url = add_query_arg(array('manage' => $cpt_slug, 'created' => 'true'), $dashboard_url);
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link">← Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
-    echo '<h2 class="cd-editor__title">Crear nuevo: ' . esc_html($cpt_obj->labels->singular_name) . '</h2>';
-    echo '<p class="cd-editor__sub">Completa los campos y publica.</p>';
+    echo '<h1 class="cd-editor__title kh-editor__title">Crear nuevo: ' . esc_html($cpt_obj->labels->singular_name) . '</h1>';
+    echo '<p class="cd-editor__sub kh-editor__subtitle">Completa los campos y publica.</p>';
     cfd_maybe_render_view_hint( 'create', $cpt_obj->labels->singular_name );
 
     acf_form(array(
@@ -1227,14 +1352,16 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
         'submit_value' => 'Crear y publicar',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn">✨ Crear y publicar</button>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">magic_button</span> Crear y publicar</button>',
         'html_submit_spinner' => '<span class="cd-spinner"></span>',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
-    echo '</div>';
+    echo '</div>'; // End cd-editor
+    
+    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom">← Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 }
 
 // ═══════════════════════════════════════════════════════════

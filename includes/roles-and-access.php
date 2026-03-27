@@ -577,7 +577,54 @@ function cfd_reset_role(): void {
 
 
 // ═══════════════════════════════════════════════════════════
-// 8. PER-USER ACCESS — PROFILE FIELDS
+// 8. CACHE PURGING
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Handles purging the cache when a post or page is saved via the frontend dashboard.
+ *
+ * @param int|string $post_id The ID of the post being saved.
+ */
+function cfd_purge_post_cache_on_save($post_id) {
+    // Don't run in admin area, only for our frontend forms.
+    if (is_admin()) {
+        return;
+    }
+
+    // Ensure we have a valid int post ID
+    if (!is_numeric($post_id)) {
+        return;
+    }
+
+    // LiteSpeed Cache
+    if (class_exists('LiteSpeed\Purge')) {
+        do_action('litespeed_purge_post', $post_id);
+    } elseif (defined('LSCWP_V')) {
+        do_action('litespeed_purge_post', $post_id);
+    }
+
+    // WP Super Cache
+    if (function_exists('wp_cache_post_change')) {
+        wp_cache_post_change($post_id);
+    }
+
+    // W3 Total Cache
+    if (function_exists('w3tc_flush_post')) {
+        w3tc_flush_post($post_id);
+    }
+
+    // WP Rocket
+    if (function_exists('rocket_clean_post')) {
+        rocket_clean_post($post_id);
+    }
+
+    // Generic fallback: Core WP object cache purge.
+    clean_post_cache($post_id);
+}
+add_action('acf/save_post', 'cfd_purge_post_cache_on_save', 20);
+
+// ═══════════════════════════════════════════════════════════
+// 9. PER-USER ACCESS — PROFILE FIELDS
 // ═══════════════════════════════════════════════════════════
 //
 // Adds a "Client Dashboard Access" section to the WordPress

@@ -806,6 +806,11 @@ function cfd_build_nav_items(): array
                 continue;
             }
 
+            // Check if user has permission to edit this CPT.
+            if (!current_user_can($cpt_obj->cap->edit_posts)) {
+                continue;
+            }
+
             // Resolve icon.
             $icon_class = 'dashicons dashicons-admin-post'; // fallback
             if (!empty($cpt_obj->menu_icon) && strpos($cpt_obj->menu_icon, 'dashicons-') === 0) {

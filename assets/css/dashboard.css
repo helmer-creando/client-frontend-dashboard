@@ -881,22 +881,26 @@
 }
 
 /* ── Labels ── */
-/* Regular field labels — lighter weight */
+/* Regular field labels — clear contrast */
 .cd-acf-form .acf-label label {
-    font-size: var(--text-s, 0.82rem) !important;
-    font-weight: 400 !important;
-    color: var(--text-dark, #2C2825) !important;
-    margin-bottom: 0.15rem !important;
+    font-size: var(--text-s, 0.88rem) !important;
+    font-weight: 500 !important;
+    color: var(--text-dark, #1A1816) !important;
+    margin-bottom: 0.2rem !important;
 }
 
-/* Group & Repeater section titles — bolder, uppercase */
+/* Group & Repeater section titles — bolder, uppercase, clear section break */
 .cd-acf-form .acf-field-group>.acf-label label,
 .cd-acf-form .acf-field-repeater>.acf-label label {
-    font-size: var(--text-s, 0.82rem) !important;
-    font-weight: 600 !important;
+    font-size: var(--text-m, 0.95rem) !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
-    color: var(--text-dark, #2C2825) !important;
+    letter-spacing: 0.05em !important;
+    color: var(--text-dark, #1A1816) !important;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.06) !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
 }
 
 /* More breathing room BEFORE group/repeater sections —
@@ -917,12 +921,12 @@
 
 /* ── Instructions ── */
 .cd-acf-form .acf-label .description {
-    font-size: var(--text-xs, 0.75rem) !important;
-    color: var(--text-dark-muted, #A09890) !important;
-    font-weight: 300 !important;
-    margin-top: 0.1rem !important;
-    margin-bottom: 0.4rem !important;
-    line-height: 1.45 !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    color: var(--text-dark-muted, #7A7068) !important;
+    font-weight: 400 !important;
+    margin-top: 0.2rem !important;
+    margin-bottom: 0.6rem !important;
+    line-height: 1.5 !important;
 }
 
 /* ── Text inputs, textareas, selects ── */
@@ -1228,6 +1232,870 @@
 }
 
 /* ═══════════════════════════════════════════════════════
+       ACF FIELD TYPE OVERRIDES — COMPLETE SET
+       ═══════════════════════════════════════════════════════
+       Styles for every ACF Pro 6.4 field type on the frontend.
+       Scoped to .cd-acf-form so nothing leaks. Mobile-first
+       with ≥44px touch targets for phone users.
+       ═══════════════════════════════════════════════════════ */
+
+/* ── Color Picker (iro.js replacement) ──────────────── */
+.cd-acf-form .wp-picker-container {
+    display: none !important;
+}
+
+.cfd-color-picker {
+    margin-top: 0.35rem;
+}
+
+.cfd-color-picker__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: var(--white, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius, 10px);
+    padding: 0.55rem 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    min-height: 48px;
+    width: 100%;
+    font-family: inherit;
+    font-size: var(--text-m, 0.9rem);
+    color: var(--text-dark, #2C2825);
+    text-align: left;
+}
+
+.cfd-color-picker__toggle:hover {
+    border-color: color-mix(in srgb, var(--primary, #8B7355) 40%, transparent);
+}
+
+.cfd-color-picker__toggle:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--primary, #8B7355) 60%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #8B7355) 10%, transparent);
+}
+
+.cfd-color-picker__swatch {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+    background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Actual color is set inline via JS */
+.cfd-color-picker__swatch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+}
+
+.cfd-color-picker__hex {
+    flex: 1;
+    font-family: inherit;
+    font-size: var(--text-s, 0.85rem);
+    color: var(--text-dark, #2C2825);
+    letter-spacing: 0.02em;
+}
+
+.cfd-color-picker__chevron {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--text-dark-muted, #8A817A);
+    border-bottom: 2px solid var(--text-dark-muted, #8A817A);
+    transform: rotate(45deg);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+.cfd-color-picker.is-open .cfd-color-picker__chevron {
+    transform: rotate(-135deg);
+}
+
+.cfd-color-picker__panel {
+    margin-top: 0.65rem;
+    padding: 1rem;
+    background: var(--white, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius, 12px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    animation: cd-slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cfd-color-picker__mount {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+/* Make iro.js handles bigger for touch */
+.cfd-color-picker .IroHandle circle {
+    stroke-width: 3 !important;
+}
+
+.cfd-color-picker__clear {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-s, 8px);
+    padding: 0.45rem 0.85rem;
+    font-size: var(--text-xs, 0.75rem);
+    font-family: inherit;
+    color: var(--text-dark-muted, #8A817A);
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 36px;
+}
+
+.cfd-color-picker__clear:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    color: var(--text-dark, #2C2825);
+}
+
+/* ── Date / Time / DateTime Pickers ─────────────────── */
+/* jQuery UI datepicker popup — styled for dashboard context */
+.cfd-has-dashboard .ui-datepicker {
+    background: var(--white, #fff) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius, 12px) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+    padding: 0.75rem !important;
+    font-family: inherit !important;
+    z-index: 99999 !important;
+    width: auto !important;
+    min-width: 280px !important;
+}
+
+.cfd-has-dashboard .ui-datepicker-header {
+    background: transparent !important;
+    border: none !important;
+    padding: 0.5rem 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.cfd-has-dashboard .ui-datepicker-title {
+    font-size: var(--text-m, 0.95rem) !important;
+    font-weight: 600 !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.cfd-has-dashboard .ui-datepicker-prev,
+.cfd-has-dashboard .ui-datepicker-next {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    top: auto !important;
+    position: relative !important;
+}
+
+.cfd-has-dashboard .ui-datepicker-prev:hover,
+.cfd-has-dashboard .ui-datepicker-next:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.cfd-has-dashboard .ui-datepicker table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+.cfd-has-dashboard .ui-datepicker th {
+    font-size: var(--text-xs, 0.7rem) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--text-dark-muted, #A09890) !important;
+    padding: 0.5rem 0 !important;
+    text-align: center !important;
+}
+
+.cfd-has-dashboard .ui-datepicker td {
+    padding: 2px !important;
+}
+
+.cfd-has-dashboard .ui-datepicker td a,
+.cfd-has-dashboard .ui-datepicker td span {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+    background: transparent !important;
+    border: none !important;
+    transition: all 0.2s !important;
+    text-align: center !important;
+}
+
+.cfd-has-dashboard .ui-datepicker td a:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent) !important;
+}
+
+.cfd-has-dashboard .ui-datepicker .ui-state-active {
+    background: var(--primary, #6B5540) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+}
+
+.cfd-has-dashboard .ui-datepicker .ui-datepicker-today a {
+    border: 2px solid var(--primary, #8B7355) !important;
+    font-weight: 600 !important;
+}
+
+/* Time picker input styling (ACF uses text inputs) */
+.cd-acf-form .acf-field-date-picker input,
+.cd-acf-form .acf-field-date-time-picker input,
+.cd-acf-form .acf-field-time-picker input {
+    min-height: 48px !important;
+}
+
+.cd-acf-form .acf-date-picker .acf-icon,
+.cd-acf-form .acf-date-time-picker .acf-icon,
+.cd-acf-form .acf-time-picker .acf-icon {
+    width: 44px !important;
+    height: 44px !important;
+}
+
+/* ── Checkbox, Radio, Button Group ──────────────────── */
+.cd-acf-form .acf-checkbox-list,
+.cd-acf-form .acf-radio-list {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.cd-acf-form .acf-checkbox-list li,
+.cd-acf-form .acf-radio-list li {
+    margin: 0 !important;
+    padding: 0.35rem 0 !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.cd-acf-form .acf-checkbox-list label,
+.cd-acf-form .acf-radio-list label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    font-size: var(--text-m, 0.9rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+    cursor: pointer !important;
+    padding: 0.3rem 0 !important;
+    min-height: 44px !important;
+    width: 100% !important;
+}
+
+/* Larger custom checkbox/radio indicators */
+.cd-acf-form .acf-checkbox-list input[type="checkbox"],
+.cd-acf-form .acf-radio-list input[type="radio"] {
+    width: 22px !important;
+    height: 22px !important;
+    cursor: pointer !important;
+    accent-color: var(--primary, #6B5540) !important;
+    flex-shrink: 0 !important;
+}
+
+/* Button Group — pill-shaped segmented control */
+.cd-acf-form .acf-button-group {
+    display: flex !important;
+    gap: 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius, 10px) !important;
+    overflow: hidden !important;
+    background: var(--white, #fff) !important;
+}
+
+.cd-acf-form .acf-button-group label {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.65rem 0.85rem !important;
+    min-height: 48px !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    font-weight: 500 !important;
+    color: var(--text-dark, #2C2825) !important;
+    cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+    text-align: center !important;
+}
+
+.cd-acf-form .acf-button-group label:last-child {
+    border-right: none !important;
+}
+
+.cd-acf-form .acf-button-group label:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 5%, transparent) !important;
+}
+
+.cd-acf-form .acf-button-group label.selected,
+.cd-acf-form .acf-button-group label.-selected {
+    background: var(--primary, #6B5540) !important;
+    color: #fff !important;
+}
+
+.cd-acf-form .acf-button-group input[type="radio"] {
+    display: none !important;
+}
+
+/* ── Range Slider ───────────────────────────────────── */
+.cd-acf-form input[type="range"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 100% !important;
+    height: 6px !important;
+    background: rgba(0, 0, 0, 0.08) !important;
+    border-radius: 99px !important;
+    outline: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 1rem 0 !important;
+}
+
+.cd-acf-form input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: var(--primary, #6B5540) !important;
+    border: 3px solid var(--white, #fff) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+    transition: transform 0.2s !important;
+}
+
+.cd-acf-form input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(1.15) !important;
+}
+
+.cd-acf-form input[type="range"]::-moz-range-thumb {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: var(--primary, #6B5540) !important;
+    border: 3px solid var(--white, #fff) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    cursor: pointer !important;
+}
+
+.cd-acf-form .acf-range-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+}
+
+.cd-acf-form .acf-range-wrap input[type="number"] {
+    max-width: 70px !important;
+    min-height: 44px !important;
+    text-align: center !important;
+}
+
+/* ── File Upload ────────────────────────────────────── */
+.cd-acf-form .acf-file-uploader {
+    border: 2px dashed rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius-l, 14px) !important;
+    padding: var(--space-l, 2.5rem) var(--space-m, 1.5rem) !important;
+    text-align: center !important;
+    background: #FDFCFA !important;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.cd-acf-form .acf-file-uploader.has-value {
+    padding: var(--space-s, 0.85rem) !important;
+    text-align: left !important;
+}
+
+.cd-acf-form .acf-file-uploader:hover {
+    border-color: var(--accent, #A69279) !important;
+    background: color-mix(in srgb, var(--accent, #A69279) 2%, #FDFCFA) !important;
+}
+
+.cd-acf-form .acf-file-uploader .file-info {
+    font-size: var(--text-s, 0.85rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.cd-acf-form .acf-file-uploader .acf-button {
+    border-radius: var(--radius-s, 8px) !important;
+    font-family: inherit !important;
+    min-height: 44px !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s !important;
+}
+
+/* ── Gallery ────────────────────────────────────────── */
+.cd-acf-form .acf-gallery {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    overflow: hidden !important;
+    background: #FDFCFA !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-main {
+    border: none !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-attachments {
+    padding: var(--space-xs, 0.5rem) !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-attachment {
+    border-radius: var(--radius-s, 8px) !important;
+    overflow: hidden !important;
+    border: 2px solid transparent !important;
+    transition: border-color 0.2s !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-attachment.active {
+    border-color: var(--primary, #6B5540) !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-add {
+    border: 2px dashed rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius-s, 8px) !important;
+    min-height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: var(--space-xs, 0.5rem) !important;
+    transition: all 0.2s !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-add:hover {
+    border-color: var(--accent, #A69279) !important;
+    background: color-mix(in srgb, var(--accent, #A69279) 3%, transparent) !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-toolbar {
+    background: transparent !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+    padding: var(--space-xs, 0.5rem) !important;
+}
+
+/* ── oEmbed ─────────────────────────────────────────── */
+.cd-acf-form .acf-oembed {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    overflow: hidden !important;
+    background: var(--white, #fff) !important;
+}
+
+.cd-acf-form .acf-oembed .acf-oembed-search {
+    padding: var(--space-xs, 0.5rem) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.cd-acf-form .acf-oembed .canvas {
+    border-radius: 0 0 var(--radius, 12px) var(--radius, 12px) !important;
+    overflow: hidden !important;
+}
+
+.cd-acf-form .acf-oembed .canvas iframe {
+    border-radius: 0 !important;
+}
+
+/* ── Link Field ─────────────────────────────────────── */
+.cd-acf-form .acf-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+}
+
+.cd-acf-form .acf-link .link-title,
+.cd-acf-form .acf-link .link-url {
+    font-size: var(--text-s, 0.85rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.cd-acf-form .acf-link a.acf-button-edit,
+.cd-acf-form .acf-link a.acf-button-clear {
+    border-radius: var(--radius-s, 6px) !important;
+    padding: 0.4rem 0.65rem !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-size: var(--text-xs, 0.75rem) !important;
+    transition: all 0.2s !important;
+}
+
+/* ── Relational Fields + Select2 ────────────────────── */
+/* Post Object, Page Link, Taxonomy, User — all use Select2 */
+.cd-acf-form .select2-container {
+    width: 100% !important;
+}
+
+.cd-acf-form .select2-container .select2-selection--single,
+.cd-acf-form .select2-container .select2-selection--multiple {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius, 10px) !important;
+    min-height: 48px !important;
+    background: var(--white, #fff) !important;
+    padding: 0.35rem 0.65rem !important;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.cd-acf-form .select2-container--focus .select2-selection,
+.cd-acf-form .select2-container--open .select2-selection {
+    border-color: color-mix(in srgb, var(--primary, #8B7355) 60%, transparent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #8B7355) 10%, transparent) !important;
+}
+
+.cd-acf-form .select2-container .select2-selection--single .select2-selection__rendered {
+    line-height: 36px !important;
+    font-size: var(--text-m, 0.9rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+    padding: 0 !important;
+}
+
+.cd-acf-form .select2-container .select2-selection--single .select2-selection__arrow {
+    height: 100% !important;
+    right: 8px !important;
+}
+
+.cd-acf-form .select2-container .select2-selection--multiple .select2-selection__choice {
+    background: color-mix(in srgb, var(--primary, #8B7355) 10%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 20%, transparent) !important;
+    border-radius: var(--radius-s, 6px) !important;
+    padding: 0.3rem 0.5rem !important;
+    font-size: var(--text-xs, 0.78rem) !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+/* Select2 dropdown panel (rendered at body level) */
+.select2-dropdown {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius, 10px) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+    overflow: hidden !important;
+}
+
+.select2-dropdown .select2-search__field {
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius-s, 8px) !important;
+    padding: 0.6rem 0.85rem !important;
+    font-size: var(--text-m, 0.9rem) !important;
+    font-family: inherit !important;
+    min-height: 44px !important;
+}
+
+.select2-dropdown .select2-results__option {
+    padding: 0.65rem 0.85rem !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: background 0.15s !important;
+}
+
+.select2-dropdown .select2-results__option--highlighted {
+    background: color-mix(in srgb, var(--primary, #8B7355) 10%, transparent) !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.select2-dropdown .select2-results__option[aria-selected="true"] {
+    background: color-mix(in srgb, var(--primary, #8B7355) 18%, transparent) !important;
+    color: var(--text-dark, #2C2825) !important;
+    font-weight: 500 !important;
+}
+
+/* Relationship field — two-column layout */
+.cd-acf-form .acf-relationship {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    overflow: hidden !important;
+    background: var(--white, #fff) !important;
+}
+
+.cd-acf-form .acf-relationship .filters {
+    padding: var(--space-xs, 0.5rem) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    gap: 0.5rem !important;
+}
+
+.cd-acf-form .acf-relationship .filters select,
+.cd-acf-form .acf-relationship .filters input {
+    min-height: 44px !important;
+}
+
+.cd-acf-form .acf-relationship .list {
+    max-height: 280px !important;
+}
+
+.cd-acf-form .acf-relationship .list li {
+    padding: 0.5rem 0.65rem !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03) !important;
+    cursor: pointer !important;
+    transition: background 0.15s !important;
+}
+
+.cd-acf-form .acf-relationship .list li:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 5%, transparent) !important;
+}
+
+.cd-acf-form .acf-relationship .list li .acf-rel-item {
+    font-size: var(--text-s, 0.85rem) !important;
+}
+
+/* Taxonomy field — checkbox list styling inherited from choice fields */
+.cd-acf-form .acf-taxonomy-field {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 10px) !important;
+    padding: var(--space-xs, 0.5rem) !important;
+    background: #FDFCFA !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
+}
+
+/* ── Google Map ─────────────────────────────────────── */
+.cd-acf-form .acf-google-map {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    overflow: hidden !important;
+}
+
+.cd-acf-form .acf-google-map .acf-google-map-search {
+    padding: var(--space-xs, 0.5rem) !important;
+}
+
+.cd-acf-form .acf-google-map .acf-google-map-search input {
+    min-height: 48px !important;
+}
+
+.cd-acf-form .acf-google-map .canvas {
+    border-radius: 0 0 var(--radius, 12px) var(--radius, 12px) !important;
+}
+
+/* ── Icon Picker ────────────────────────────────────── */
+.cd-acf-form .acf-icon-picker {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    padding: var(--space-xs, 0.5rem) !important;
+    background: var(--white, #fff) !important;
+}
+
+.cd-acf-form .acf-icon-picker .acf-icon-picker-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)) !important;
+    gap: 4px !important;
+}
+
+.cd-acf-form .acf-icon-picker .acf-icon-picker-grid button {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: var(--radius-s, 8px) !important;
+    border: 1px solid transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    background: transparent !important;
+}
+
+.cd-acf-form .acf-icon-picker .acf-icon-picker-grid button:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent) !important;
+    border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.cd-acf-form .acf-icon-picker .acf-icon-picker-grid button.selected,
+.cd-acf-form .acf-icon-picker .acf-icon-picker-grid button.-selected {
+    background: color-mix(in srgb, var(--primary, #8B7355) 15%, transparent) !important;
+    border-color: var(--primary, #6B5540) !important;
+}
+
+/* ── Layout Fields: Tab ─────────────────────────────── */
+.cd-acf-form .acf-tab-wrap {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    padding-bottom: 0 !important;
+    margin-bottom: var(--space-s, 0.85rem) !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+}
+
+.cd-acf-form .acf-tab-wrap::-webkit-scrollbar {
+    display: none !important;
+}
+
+.cd-acf-form .acf-tab-group {
+    display: flex !important;
+    gap: 0 !important;
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+
+.cd-acf-form .acf-tab-group li {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.cd-acf-form .acf-tab-group li a {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0.65rem 1rem !important;
+    min-height: 44px !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    font-weight: 500 !important;
+    color: var(--text-dark-muted, #8A817A) !important;
+    text-decoration: none !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all 0.25s !important;
+    white-space: nowrap !important;
+}
+
+.cd-acf-form .acf-tab-group li a:hover {
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.cd-acf-form .acf-tab-group li.active a {
+    color: var(--primary, #6B5540) !important;
+    border-bottom-color: var(--primary, #6B5540) !important;
+    font-weight: 600 !important;
+}
+
+/* ── Layout Fields: Accordion ───────────────────────── */
+.cd-acf-form .acf-field-accordion .acf-accordion-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    min-height: 48px !important;
+    padding: 0.65rem 0.85rem !important;
+    background: #FDFCFA !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 10px) !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    font-size: var(--text-s, 0.88rem) !important;
+    font-weight: 500 !important;
+    color: var(--text-dark, #2C2825) !important;
+}
+
+.cd-acf-form .acf-field-accordion .acf-accordion-title:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 4%, #FDFCFA) !important;
+}
+
+.cd-acf-form .acf-field-accordion .acf-accordion-title .acf-accordion-icon {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.cd-acf-form .acf-field-accordion.-open .acf-accordion-title .acf-accordion-icon {
+    transform: rotate(180deg) !important;
+}
+
+.cd-acf-form .acf-field-accordion .acf-accordion-content {
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    border-top: none !important;
+    border-radius: 0 0 var(--radius, 10px) var(--radius, 10px) !important;
+    padding: var(--space-s, 0.85rem) !important;
+    animation: cd-slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+/* ── Layout Fields: Flexible Content ────────────────── */
+.cd-acf-form .acf-flexible-content .acf-actions .acf-button {
+    background: transparent !important;
+    border: 1px dashed rgba(0, 0, 0, 0.1) !important;
+    border-radius: var(--radius, 10px) !important;
+    padding: 0.6rem 1rem !important;
+    font-family: inherit !important;
+    font-size: var(--text-s, 0.82rem) !important;
+    color: var(--text-dark-muted, #8A817A) !important;
+    font-weight: 500 !important;
+    min-height: 48px !important;
+    cursor: pointer !important;
+    transition: all 0.25s !important;
+}
+
+.cd-acf-form .acf-flexible-content .acf-actions .acf-button:hover {
+    border-color: var(--accent, #A69279) !important;
+    color: var(--primary, #6B5540) !important;
+    background: color-mix(in srgb, var(--accent, #A69279) 3%, transparent) !important;
+}
+
+.cd-acf-form .acf-flexible-content > .values > .layout {
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-radius: var(--radius, 12px) !important;
+    margin-bottom: var(--space-s, 0.85rem) !important;
+    overflow: hidden !important;
+    background: #FDFCFA !important;
+}
+
+.cd-acf-form .acf-flexible-content .layout .acf-fc-layout-handle {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+    padding: 0.5rem 0.85rem !important;
+    min-height: 44px !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    font-weight: 600 !important;
+    color: var(--text-dark-muted, #A09890) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+}
+
+/* Flexible content layout popup */
+.cd-acf-form .acf-fc-popup {
+    border-radius: var(--radius, 12px) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.cd-acf-form .acf-fc-popup a {
+    padding: 0.65rem 1rem !important;
+    min-height: 44px !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: background 0.15s !important;
+}
+
+.cd-acf-form .acf-fc-popup a:hover {
+    background: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent) !important;
+}
+
+/* ── Password field — show/hide toggle ──────────────── */
+.cd-acf-form .acf-field-password .acf-input-wrap {
+    position: relative !important;
+}
+
+/* ── Email field — at sign icon ─────────────────────── */
+.cd-acf-form .acf-field-email .acf-input-wrap {
+    position: relative !important;
+}
+
+/* ═══════════════════════════════════════════════════════
        RESPONSIVE
        ═══════════════════════════════════════════════════════ */
 
@@ -1391,6 +2259,50 @@
         padding-right: var(--space-xs, 0.5rem) !important;
         justify-content: center !important;
         border-radius: 0 0 var(--radius, 14px) var(--radius, 14px) !important;
+    }
+
+    /* ── Mobile: Relationship field — stack columns ── */
+    .cd-acf-form .acf-relationship .acf-rel-wrap {
+        flex-direction: column !important;
+    }
+
+    .cd-acf-form .acf-relationship .filters {
+        flex-direction: column !important;
+    }
+
+    /* ── Mobile: Button Group — horizontal scroll ── */
+    .cd-acf-form .acf-button-group {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .cd-acf-form .acf-button-group label {
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+    }
+
+    /* ── Mobile: Color picker — full width ── */
+    .cfd-color-picker__panel {
+        padding: 0.75rem !important;
+    }
+
+    /* ── Mobile: Tab bar — scroll hint ── */
+    .cd-acf-form .acf-tab-group {
+        padding-right: 1.5rem !important;
+    }
+
+    /* ── Mobile: Date picker — center popup ── */
+    .cfd-has-dashboard .ui-datepicker {
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        min-width: 260px !important;
+        max-width: calc(100vw - 2rem) !important;
+    }
+
+    /* ── Mobile: Gallery — smaller grid ── */
+    .cd-acf-form .acf-gallery .acf-gallery-attachment {
+        width: calc(33.333% - 8px) !important;
     }
 }
 
@@ -1640,4 +2552,457 @@
 /* ── Sidebar safe-area for iOS browser chrome ── */
 .cfd-sidebar-nav__list {
     padding-bottom: env(safe-area-inset-bottom, 1.5rem);
+}
+/* ═══════════════════════════════════════════════════════════
+   KINDRED HEARTH OVERRIDES (STITCH 2.0 DESIGN SYSTEM)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Typography & Icons ──────────────────────────────── */
+.kh-content__title,
+.kh-editor__title {
+    font-size: var(--step-3, 3rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+    color: var(--kh-primary, #443B33) !important;
+    margin-bottom: var(--space-xs, 0.5rem) !important;
+    letter-spacing: -0.02em !important;
+}
+
+.kh-editor__subtitle {
+    font-size: var(--step-0, 1rem) !important;
+    color: var(--kh-on-surface-variant, #5F5953) !important;
+    margin-bottom: var(--space-l, 2rem) !important;
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+}
+
+.kh-icon--filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Editor Success Banner ────────────────────────────── */
+.kh-editor__success {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s, 1rem);
+    background-color: var(--kh-success-container, #E6F4EA);
+    color: var(--kh-on-success-container, #0D3C1F);
+    padding: var(--space-s, 1rem) var(--space-m, 1.5rem);
+    border-radius: var(--kh-radius-m, 12px);
+    margin-bottom: var(--space-l, 2rem);
+    border: none;
+    font-weight: 500;
+}
+.kh-editor__success .material-symbols-outlined {
+    color: var(--kh-success, #1E8E3E);
+    font-size: 1.5rem;
+}
+
+/* ── Buttons (Gradient Save & Outlined Secondary) ─────── */
+.kh-editor__save,
+.kh-content__add {
+    background: linear-gradient(135deg, var(--kh-primary, #443B33) 0%, var(--kh-secondary, #B29B8A) 100%) !important;
+    color: var(--kh-on-primary, #FFFFFF) !important;
+    border: none !important;
+    border-radius: 100px !important; /* Fully rounded capsule */
+    padding: 0 var(--space-xl, 3rem) !important;
+    height: 56px !important;
+    font-size: var(--step-0, 1rem) !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: var(--space-xs, 0.5rem) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    cursor: pointer !important;
+}
+.kh-editor__save:hover,
+.kh-content__add:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--kh-elevation-2) !important;
+}
+
+/* Top Back Link */
+.kh-editor__back {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: var(--space-xs, 0.5rem) !important;
+    color: var(--kh-primary, #443B33) !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    margin-bottom: var(--space-m, 1.5rem) !important;
+}
+.kh-editor__back:hover {
+    color: var(--kh-secondary, #B29B8A) !important;
+}
+
+/* ── Concierge Tip & Help Banner Cards ────────────────── */
+.kh-tip-card,
+.kh-help-banner {
+    background-color: var(--kh-surface-container, #F5F3F1);
+    border-radius: var(--kh-radius-l, 16px);
+    padding: var(--space-m, 1.5rem);
+    display: flex;
+    gap: var(--space-m, 1.5rem);
+    align-items: flex-start;
+    margin-top: var(--space-xl, 3rem);
+    border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+}
+
+.kh-tip-card__icon,
+.kh-help-banner__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--kh-secondary-container, #E6DCD1);
+    color: var(--kh-on-secondary-container, #221C16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.kh-help-banner__icon {
+    background-color: var(--kh-primary-container, #E6E1DC);
+    color: var(--kh-on-primary-container, #0D0B0A);
+}
+
+.kh-tip-card__title,
+.kh-help-banner__title {
+    font-size: var(--step-0, 1rem);
+    font-weight: 600;
+    color: var(--kh-on-surface, #242424);
+    margin: 0 0 0.25rem 0;
+}
+
+.kh-tip-card__text,
+.kh-help-banner__text {
+    font-size: var(--step--1, 0.875rem);
+    color: var(--kh-on-surface-variant, #5F5953);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.kh-help-banner__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--kh-outline, #7F766C);
+    border-radius: 100px;
+    color: var(--kh-on-surface, #242424);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+.kh-help-banner__btn:hover {
+    background-color: var(--kh-surface-variant, #EBE6DF);
+}
+
+/* ── Home Page Cards ──────────────────────────────────── */
+.kh-page-card {
+    background-color: var(--kh-surface, #FAFAFA);
+    border-radius: var(--kh-radius-l, 16px);
+    border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+.kh-page-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--kh-elevation-1);
+}
+
+.kh-page-card__image {
+    width: 100%;
+    height: 160px;
+    position: relative;
+    background-color: var(--kh-surface-container, #F5F3F1);
+}
+.kh-page-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.kh-page-card__placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--kh-outline, #7F766C);
+}
+.kh-page-card__placeholder .material-symbols-outlined {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.kh-page-card__badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background-color: var(--kh-primary, #443B33);
+    color: var(--kh-on-primary, #FFFFFF);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.kh-page-card__header {
+    padding: var(--space-m, 1.25rem) var(--space-m, 1.25rem) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+.kh-page-card__title {
+    font-size: var(--step-1, 1.25rem);
+    font-weight: 700;
+    color: var(--kh-on-surface, #242424);
+    margin: 0;
+    line-height: 1.2;
+}
+.kh-page-card__view {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--kh-primary, #443B33);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.kh-page-card__view:hover {
+    text-decoration: underline;
+}
+
+.kh-page-card__meta {
+    padding: 0.5rem var(--space-m, 1.25rem);
+    font-size: 0.875rem;
+    color: var(--kh-on-surface-variant, #5F5953);
+    margin: 0;
+    flex-grow: 1;
+}
+
+.kh-page-card__btn {
+    margin: 0 var(--space-m, 1.25rem) var(--space-m, 1.25rem);
+    background: linear-gradient(135deg, var(--kh-primary, #443B33) 0%, var(--kh-secondary, #B29B8A) 100%);
+    color: var(--kh-on-primary, #FFFFFF);
+    border-radius: 100px;
+    padding: 0 1.5rem;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: opacity 0.2s ease;
+}
+.kh-page-card__btn:hover {
+    opacity: 0.9;
+    color: var(--kh-on-primary, #FFFFFF);
+}
+
+/* ── CPT List Items ───────────────────────────────────── */
+.kh-content-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--kh-surface, #FAFAFA);
+    border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    border-radius: var(--kh-radius-m, 12px);
+    padding: var(--space-m, 1.25rem);
+    margin-bottom: var(--space-s, 1rem);
+    transition: box-shadow 0.2s ease;
+}
+.kh-content-item:hover {
+    box-shadow: var(--kh-elevation-1);
+}
+
+.kh-content-item__left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-m, 1.5rem);
+}
+
+.kh-content-item__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background-color: var(--kh-surface-container, #F5F3F1);
+    border-radius: var(--kh-radius-s, 8px);
+    flex-shrink: 0;
+}
+.kh-content-item__date-month {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--kh-primary, #443B33);
+    letter-spacing: 0.05em;
+}
+.kh-content-item__date-day {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--kh-on-surface, #242424);
+    line-height: 1;
+}
+
+.kh-content-item__title {
+    font-size: var(--step-1, 1.25rem);
+    font-weight: 600;
+    color: var(--kh-on-surface, #242424);
+    margin: 0 0 0.25rem 0;
+}
+
+.kh-content-item__meta {
+    font-size: 0.875rem;
+    color: var(--kh-on-surface-variant, #5F5953);
+    margin: 0;
+}
+
+.kh-content-item__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kh-content-item__edit,
+.kh-content-item__delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 44px;
+    border-radius: 100px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+.kh-content-item__edit {
+    padding: 0 1rem;
+    background-color: var(--kh-secondary-container, #E6DCD1);
+    color: var(--kh-on-secondary-container, #221C16);
+}
+.kh-content-item__edit:hover {
+    background-color: var(--kh-primary-container, #E6E1DC);
+}
+
+.kh-content-item__delete {
+    width: 44px;
+    color: var(--kh-error, #B3261E);
+    background-color: transparent;
+}
+.kh-content-item__delete:hover {
+    background-color: var(--kh-error-container, #F9DEDC);
+}
+
+/* ── Pagination ───────────────────────────────────────── */
+.kh-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--space-xl, 3rem);
+    padding-top: var(--space-m, 1.5rem);
+    border-top: 1px solid var(--kh-outline-variant, #CAC4BB);
+}
+.kh-pagination__link {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--kh-outline, #7F766C);
+    border-radius: 100px;
+    color: var(--kh-on-surface, #242424) !important;
+    text-decoration: none;
+    font-weight: 500;
+    gap: 4px;
+}
+.kh-pagination__link:hover:not(.kh-pagination__link--disabled) {
+    background-color: var(--kh-surface-variant, #EBE6DF);
+}
+.kh-pagination__link--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    border-color: var(--kh-outline-variant, #CAC4BB);
+}
+.kh-pagination__current {
+    font-size: 0.875rem;
+    color: var(--kh-on-surface-variant, #5F5953);
+    font-weight: 500;
+}
+
+/* ── Mobile Overrides (≤ 768px) ───────────────────────── */
+@media (max-width: 768px) {
+    .kh-content-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .kh-content-item__actions {
+        width: 100%;
+        display: flex;
+    }
+    
+    .kh-content-item__edit {
+        flex-grow: 1;
+    }
+    
+    .kh-tip-card,
+    .kh-help-banner {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .kh-editor__actions {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .kh-editor__actions > * {
+        margin: 0 !important;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        height: 48px;
+    }
+    
+    .kh-pagination {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .kh-pagination__link {
+        width: 100%;
+        justify-content: center;
+    }
 }
