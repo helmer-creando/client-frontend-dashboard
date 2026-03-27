@@ -178,6 +178,13 @@ Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
 | **2.2.2** | Parsedown class_exists guard |
 | **3.0.0-beta1–beta9** | Full v3 refactor: composable shortcodes, Bricks integration, modal rewrite, filter accordion, logo upload, dynamic tags, Dashicon cards |
 | **3.0.0** | Stable release — hybrid Bricks + Plugin architecture |
+| **3.2.0** | Per-user CPT/page access restrictions via user profile |
+| **3.4.0** | Color picker with portal pattern, dynamic HEX feedback |
+| **3.4.1** | Bricks condition whitelist + native condition registration |
+| **3.4.2** | Consolidated color picker portal + Bricks condition fix |
+| **3.4.3** | Fix Bricks builder crash - add cfd_home_view handler + safety guards |
+| **3.4.4** | Debug release - temporarily disabled Bricks conditions |
+| **3.4.5** | Re-enable native Bricks conditions, keep echo whitelist disabled |
 
 ---
 
@@ -186,6 +193,9 @@ Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
 - [ ] **LiteSpeed cache on login page** — May need a LiteSpeed-specific exclusion rule
 - [ ] Login mesh gradient (3 rotating conic gradients + blur) — test on older iPads
 - [ ] Consider transient caching for `get_page_by_path()` calls in heavy pages
+- [ ] **Sidebar redesign** — Icons need lighter color, "Inicio" button deprecated (now redundant with Páginas)
+- [ ] **Mobile menu toggle not working** — Script present but toggle not functioning
+- [ ] **Loading spinner for "Guardar mis cambios"** — UX feedback during form save
 
 ---
 
@@ -221,3 +231,33 @@ Rules:
 **GitHub:** https://github.com/helmer-creando/client-frontend-dashboard (public)
 **Local path:** `/Volumes/Ikigai/#HelpingOthers/AutentiWeb/dev/client-frontend-dashboard`
 **License:** GPL-2.0-or-later
+**Current Version:** 3.4.5
+
+---
+
+## Session State (Updated 2026-03-27)
+
+### Recent Work
+- Fixed Bricks builder crash on `/mi-espacio/` page caused by `{echo:cfd_has_manageable_cpts}` condition
+- The issue was that Bricks evaluates conditions before the WordPress query is set up, causing `is_page()` to fail
+- Added safety guards: `did_action('wp')` check and try-catch wrappers
+- Native Bricks conditions now work properly (use dropdown, not `{echo:}` tags)
+- Echo function whitelist intentionally disabled — native conditions are more reliable
+
+### Bricks Conditions Available
+In Bricks Builder conditions dropdown under "Client Dashboard" group:
+- **Home View** — is/is not Active (home) or Active (edit/manage/create)
+- **Has Manageable CPTs** — is/is not Yes (has CPTs) or No (pages only)
+
+### Pending Tasks for Next Session
+1. **Sidebar redesign** (`[cfd_sidebar_nav]`)
+   - Remove "Inicio" button (deprecated — Páginas covers same function)
+   - Icons need lighter colors (sidebar uses `--bg-ultra-dark`, icons are dark)
+   
+2. **Mobile menu toggle not working**
+   - Script is present in Bricks/Perfmatters but toggle doesn't function
+   - Classes: `.cfd-mobile-toggle`, `.cfd-sidebar`, `.cfd-sidebar-overlay`
+   
+3. **Loading spinner for form save**
+   - Add UX feedback when clicking "Guardar mis cambios"
+   - Form submission takes a few seconds, users need visual confirmation

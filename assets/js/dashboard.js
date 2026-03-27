@@ -259,3 +259,143 @@ document.addEventListener('click', function (e) {
         toggle.removeAttribute('open');
     }
 })();
+
+/* ── Mobile sidebar toggle ─────────────────────────────
+   Creates hamburger toggle button + overlay for mobile.
+   Works with Bricks sidebar that has .cfd-sidebar class.    */
+(function () {
+    var isMobile = function () {
+        return window.innerWidth <= 991;
+    };
+
+    // Only initialize on mobile
+    if (!isMobile()) return;
+
+    var sidebar = document.querySelector('.cfd-sidebar');
+    if (!sidebar) return;
+
+    // Create toggle button
+    var toggleBtn = document.createElement('button');
+    toggleBtn.className = 'cfd-mobile-toggle';
+    toggleBtn.setAttribute('aria-label', 'Abrir menú');
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.innerHTML = '<span class="cfd-mobile-toggle__icon">' +
+        '<span class="cfd-mobile-toggle__line"></span>' +
+        '<span class="cfd-mobile-toggle__line"></span>' +
+        '<span class="cfd-mobile-toggle__line"></span>' +
+        '</span>';
+
+    // Create overlay
+    var overlay = document.createElement('div');
+    overlay.className = 'cfd-sidebar-overlay';
+
+    // Insert into DOM
+    document.body.appendChild(toggleBtn);
+    document.body.appendChild(overlay);
+
+    function openSidebar() {
+        sidebar.classList.add('is-open');
+        overlay.classList.add('is-visible');
+        toggleBtn.classList.add('is-active');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        toggleBtn.setAttribute('aria-label', 'Cerrar menú');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        sidebar.classList.remove('is-open');
+        overlay.classList.remove('is-visible');
+        toggleBtn.classList.remove('is-active');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.setAttribute('aria-label', 'Abrir menú');
+        document.body.style.overflow = '';
+    }
+
+    function toggleSidebar() {
+        if (sidebar.classList.contains('is-open')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    }
+
+    // Event listeners
+    toggleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('is-open')) {
+            closeSidebar();
+        }
+    });
+
+    // Close sidebar when clicking a nav link (for SPA-like feel)
+    sidebar.addEventListener('click', function (e) {
+        var link = e.target.closest('.cfd-sidebar-nav__link');
+        if (link) {
+            // Small delay to let the click register
+            setTimeout(closeSidebar, 150);
+        }
+    });
+
+    // Handle resize — close sidebar if window becomes desktop
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            if (!isMobile() && sidebar.classList.contains('is-open')) {
+                closeSidebar();
+            }
+        }, 150);
+    });
+})();
+
+/* ── Form submit loading state ─────────────────────────
+   Adds spinner + "Guardando..." text to submit button
+   when ACF form is submitted. Prevents double-clicks.       */
+(function () {
+    document.addEventListener('submit', function (e) {
+        var form = e.target.closest('.cd-acf-form');
+        if (!form) return;
+
+        var btn = form.querySelector('input[type="submit"], button[type="submit"]');
+        if (!btn || btn.classList.contains('cd-btn--loading')) return;
+
+        // Disable and add loading state
+        btn.disabled = true;
+        btn.classList.add('cd-btn--loading');
+
+        if (btn.tagName === 'INPUT') {
+            // Store original value
+            btn.dataset.originalValue = btn.value;
+            btn.value = 'Guardando...';
+        } else {
+            // For button elements, we can add the spinner
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="cd-spinner"></span> Guardando...';
+        }
+    });
+
+    // If form submission fails (client-side validation), reset button
+    // ACF triggers 'acf/validate_field' and can prevent submission
+    if (typeof acf !== 'undefined') {
+        acf.addAction('validation_failure', function () {
+            var btns = document.querySelectorAll('.cd-btn--loading');
+            btns.forEach(function (btn) {
+                btn.disabled = false;
+                btn.classList.remove('cd-btn--loading');
+                if (btn.tagName === 'INPUT' && btn.dataset.originalValue) {
+                    btn.value = btn.dataset.originalValue;
+                } else if (btn.dataset.originalHtml) {
+                    btn.innerHTML = btn.dataset.originalHtml;
+                }
+            });
+        });
+    }
+})();

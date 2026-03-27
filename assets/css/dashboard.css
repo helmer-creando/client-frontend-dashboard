@@ -2341,6 +2341,8 @@
     height: 20px;
     flex-shrink: 0;
     opacity: 0.85;
+    /* Ensure Dashicons (font icons) inherit white color from parent link */
+    color: inherit;
 }
 
 .cfd-sidebar-nav__icon--img {
@@ -3296,4 +3298,159 @@
         width: 100%;
         justify-content: center;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE SIDEBAR TOGGLE
+   ═══════════════════════════════════════════════════════════
+   Works with Bricks sidebar container that has .cfd-sidebar class.
+   Toggle button and overlay are injected via JS when needed.    */
+
+/* ── Mobile toggle button (hamburger) ── */
+.cfd-mobile-toggle {
+    display: none;
+    position: fixed;
+    top: var(--space-s, 1rem);
+    left: var(--space-s, 1rem);
+    z-index: 10000;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-s, 8px);
+    background: var(--bg-ultra-dark, #1a1a2e);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.cfd-mobile-toggle:hover {
+    background: var(--bg-dark, #2d2d44);
+}
+
+.cfd-mobile-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Hamburger icon (three lines) */
+.cfd-mobile-toggle__icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+}
+
+.cfd-mobile-toggle__line {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #fff;
+    border-radius: 1px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+/* Transform to X when sidebar is open */
+.cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(2) {
+    opacity: 0;
+}
+
+.cfd-mobile-toggle.is-active .cfd-mobile-toggle__line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ── Sidebar overlay (backdrop) ── */
+.cfd-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.cfd-sidebar-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ── Sidebar mobile state ──
+   The sidebar container in Bricks should have .cfd-sidebar class.
+   On mobile, it's hidden off-screen by default. */
+@media (max-width: 991px) {
+    .cfd-mobile-toggle {
+        display: flex;
+    }
+
+    /* Sidebar hidden off-screen by default on mobile */
+    .cfd-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        z-index: 9999 !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+    }
+
+    /* Sidebar visible when open */
+    .cfd-sidebar.is-open {
+        transform: translateX(0);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FORM SUBMIT LOADING STATE
+   ═══════════════════════════════════════════════════════════ */
+
+/* Spinner animation */
+@keyframes cd-pulse-dot {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(0.75);
+        opacity: 0.5;
+    }
+}
+
+/* Loading spinner — subtle pulsing dot */
+.cd-spinner {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: currentColor;
+    border-radius: 50%;
+    animation: cd-pulse-dot 0.8s ease-in-out infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Button loading state */
+.cd-btn--loading {
+    position: relative;
+    opacity: 0.85;
+    cursor: wait !important;
+    pointer-events: none;
+}
+
+/* For input[type="submit"] buttons, we wrap the text */
+.cd-btn--loading-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }

@@ -346,11 +346,9 @@ function cfd_render_sidebar_nav(): string
     $view = cfd_get_dashboard_view();
 
     // Determine which nav item is "active".
+    // Note: "Páginas" now serves as the home link (shows on dashboard home view)
     $active_slug = '';
-    if ($view === 'home' || $view === '') {
-        $active_slug = 'home';
-    }
-    elseif ($view === 'edit_page') {
+    if ($view === 'home' || $view === '' || $view === 'edit_page') {
         $active_slug = 'pages';
     }
     elseif ($view === 'manage' && isset($_GET['manage'])) {
@@ -368,16 +366,7 @@ function cfd_render_sidebar_nav(): string
     echo '<nav class="cfd-sidebar-nav" aria-label="Dashboard navigation">';
     echo '<ul class="cfd-sidebar-nav__list">';
 
-    // ── 1. Inicio ──
-    $active_class = ($active_slug === 'home') ? ' is-active' : '';
-    echo '<li class="cfd-sidebar-nav__item' . $active_class . '">';
-    echo '  <a href="' . esc_url($dashboard_url) . '" class="cfd-sidebar-nav__link">';
-    echo '    <span class="dashicons dashicons-dashboard cfd-sidebar-nav__icon"></span>';
-    echo '    <span class="cfd-sidebar-nav__label">Inicio</span>';
-    echo '  </a>';
-    echo '</li>';
-
-    // ── 2. Páginas (only if there are editable pages) ──
+    // ── 1. Páginas (always first, links to dashboard home) ──
     $pages = cfd_get_editable_pages($config);
     if (!empty($pages)) {
         $active_class = ($active_slug === 'pages') ? ' is-active' : '';
