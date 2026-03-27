@@ -160,6 +160,10 @@
                 clearBtn.style.display = 'inline-block';
             });
 
+            // Initial HEX populate (ensure it shows correctly even before any interaction)
+            var initialHexBox = panel.querySelector('.cfd-color-picker__input');
+            if (initialHexBox) initialHexBox.value = currentColor;
+
             // Toggle panel open/close
             toggle.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -167,9 +171,18 @@
                 panel.style.display = isOpen ? 'none' : 'block';
                 wrapper.classList.toggle('is-open', !isOpen);
 
+                // Extreme Stacking Context Fix: Boost the parent ACF field z-index
+                var fieldParent = field.closest('.acf-field');
+                if (fieldParent) {
+                    fieldParent.classList.toggle('cfd-field--active-picker', !isOpen);
+                }
+
                 // Resize the picker after opening (iro.js needs this)
+                // Also ensure the hex value is shown
                 if (!isOpen) {
                     picker.resize(Math.min(COLOR_PICKER_WIDTH, wrapper.offsetWidth - 32));
+                    var internalHex = panel.querySelector('.cfd-color-picker__input');
+                    if (internalHex) internalHex.value = acfInput.value || '#000000';
                 }
             });
 
@@ -196,6 +209,12 @@
                 if (panel) {
                     panel.style.display = 'none';
                     wrapper.classList.remove('is-open');
+                    
+                    // Remove field boosting
+                    var field = wrapper.closest('.acf-field');
+                    if (field) {
+                        field.classList.remove('cfd-field--active-picker');
+                    }
                 }
             }
         });

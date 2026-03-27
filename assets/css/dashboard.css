@@ -2741,6 +2741,12 @@
     z-index: 1000 !important;
 }
 
+/* Parent field boost - the definitive fix for stacking context issues */
+.acf-field.cfd-field--active-picker {
+    z-index: 10000 !important;
+    position: relative !important;
+}
+
 .cfd-color-picker__toggle {
     display: inline-flex;
     align-items: center;
@@ -2792,38 +2798,44 @@
 .cfd-color-picker__label {
     font-size: 0.75rem;
     font-weight: 800;
-    color: var(--kh-outline, #7F766C);
+    color: var(--kh-primary, #443B33) !important;
     letter-spacing: 0.05em;
+    opacity: 0.9;
 }
 
 .cfd-color-picker__input {
-    background: transparent;
-    border: none;
+    background: #fff !important;
+    border: 1px solid var(--kh-surface-container-highest, #E4E0D6) !important;
     font-family: var(--font-mono, monospace);
     font-size: 1rem;
-    font-weight: 600;
-    color: var(--kh-primary, #443B33);
+    font-weight: 700 !important;
+    color: var(--kh-primary, #443B33) !important;
     width: 100%;
     outline: none;
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .cfd-color-picker__clear {
-    display: block;
-    width: 100%;
-    margin-top: var(--space-s, 0.75rem);
-    padding: var(--space-xs, 0.4rem);
+    display: inline-block !important;
+    width: auto !important;
+    margin: 1.25rem auto 0 !important;
+    padding: 0 !important;
     text-align: center;
-    background: none;
-    border: 1px solid var(--border, #E2DCD5);
-    border-radius: var(--radius-s, 6px);
-    color: var(--text-dark-muted, #7A726A);
-    font-size: var(--text-xs, 0.75rem);
+    background: none !important;
+    border: none !important;
+    border-bottom: 1.5px solid #d32f2f !important;
+    color: #d32f2f !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
     cursor: pointer;
+    text-decoration: none !important;
+    line-height: 1.2;
 }
 
 .cfd-color-picker__clear:hover {
-    background: var(--bg-alt, #F8F6F4);
-    color: var(--text-dark, #2C2825);
+    color: #b71c1c !important;
+    border-bottom-color: #b71c1c !important;
 }
 
 /* Top Back Link */
