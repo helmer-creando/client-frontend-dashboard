@@ -7,7 +7,8 @@
  * frontend dashboard. Main features:
  *
  * 1. Color Picker — Replaces WordPress Iris with iro.js
- *    (touch-friendly wheel + slider)
+ *    (touch-friendly wheel + slider) with PORTAL pattern
+ *    to definitively solve stacking context issues
  * 2. Date/Time Pickers — Enlarges jQuery UI touch targets
  * 3. Select2 — Adjusts dropdown for mobile usability
  *
@@ -25,21 +26,122 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    // 1. COLOR PICKER — Replace Iris with iro.js
+    // 1. COLOR PICKER — Replace Iris with iro.js (PORTAL PATTERN)
     // ═══════════════════════════════════════════════════════
 
-    var COLOR_PICKER_WIDTH = 260;
+    var COLOR_PICKER_WIDTH = 280;
     var iroInstances = [];
+    var activePickerData = null; // Track the currently open picker
+
+    /**
+     * Calculate optimal contrast color (black or white) for text on a given background
+     */
+    function getContrastColor(hexColor) {
+        if (!hexColor || hexColor === 'transparent') return '#000000';
+        var hex = hexColor.replace('#', '');
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        var r = parseInt(hex.substr(0, 2), 16);
+        var g = parseInt(hex.substr(2, 2), 16);
+        var b = parseInt(hex.substr(4, 2), 16);
+        // YIQ formula for perceived brightness
+        var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return yiq >= 128 ? '#000000' : '#FFFFFF';
+    }
+
+    /**
+     * Position the portal panel relative to the toggle button
+     */
+    function positionPortalPanel(panel, toggle) {
+        var rect = toggle.getBoundingClientRect();
+        var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        var viewportHeight = window.innerHeight;
+        var viewportWidth = window.innerWidth;
+        
+        // Panel dimensions (estimate before render, then adjust)
+        var panelHeight = 420; // Approximate height
+        var panelWidth = Math.min(COLOR_PICKER_WIDTH + 48, viewportWidth - 32);
+        
+        // Default: position below the toggle
+        var top = rect.bottom + scrollTop + 8;
+        var left = rect.left + scrollLeft;
+        
+        // Check if panel would overflow bottom of viewport
+        if (rect.bottom + panelHeight > viewportHeight) {
+            // Position above the toggle instead
+            top = rect.top + scrollTop - panelHeight - 8;
+            // If still overflowing top, just position at top of viewport
+            if (top < scrollTop + 16) {
+                top = scrollTop + 16;
+            }
+        }
+        
+        // Check horizontal overflow
+        if (left + panelWidth > viewportWidth + scrollLeft - 16) {
+            left = viewportWidth + scrollLeft - panelWidth - 16;
+        }
+        if (left < scrollLeft + 16) {
+            left = scrollLeft + 16;
+        }
+        
+        panel.style.top = top + 'px';
+        panel.style.left = left + 'px';
+        panel.style.width = panelWidth + 'px';
+    }
+
+    /**
+     * Update the HEX display with dynamic background color and contrast text
+     */
+    function updateHexDisplay(panel, hexColor) {
+        var hexInput = panel.querySelector('.cfd-color-picker__input');
+        var swatchPreview = panel.querySelector('.cfd-color-picker__swatch-preview');
+        
+        if (hexInput) {
+            hexInput.value = hexColor || '';
+        }
+        
+        if (swatchPreview) {
+            swatchPreview.style.backgroundColor = hexColor || 'transparent';
+            // Add checkerboard pattern for transparency indication when no color
+            if (!hexColor || hexColor === '') {
+                swatchPreview.classList.add('cfd-color-picker__swatch-preview--empty');
+            } else {
+                swatchPreview.classList.remove('cfd-color-picker__swatch-preview--empty');
+            }
+        }
+    }
+
+    /**
+     * Close any open color picker portal
+     */
+    function closeActivePortal() {
+        if (!activePickerData) return;
+        
+        var panel = activePickerData.panel;
+        var wrapper = activePickerData.wrapper;
+        
+        // Animate out
+        panel.classList.remove('cfd-color-picker__portal--visible');
+        panel.classList.add('cfd-color-picker__portal--closing');
+        
+        setTimeout(function() {
+            if (panel.parentNode === document.body) {
+                document.body.removeChild(panel);
+            }
+            panel.classList.remove('cfd-color-picker__portal--closing');
+        }, 200);
+        
+        wrapper.classList.remove('is-open');
+        activePickerData = null;
+    }
 
     /**
      * Initialize iro.js color pickers for all ACF color picker fields.
-     *
-     * ACF renders color pickers as:
-     *   .acf-color-picker > input[type="text"].acf-color-picker (the hidden value)
-     *   jQuery initializes wp-color-picker on it, which creates .wp-picker-container
-     *
-     * We hide wp-picker-container and create our own iro.js UI that syncs
-     * the value back to ACF's hidden input.
+     * Uses PORTAL PATTERN: Panel is appended to <body> when opened
+     * and positioned absolutely using getBoundingClientRect().
+     * This definitively solves all stacking context issues.
      */
     function initColorPickers(container) {
         if (typeof iro === 'undefined') {
@@ -61,6 +163,7 @@
 
             // Get current color value (default to a neutral color)
             var currentColor = acfInput.value || '#3a86ff';
+            var hasColor = Boolean(acfInput.value);
 
             // Hide the native Iris picker entirely
             var wpContainer = field.querySelector('.wp-picker-container');
@@ -77,148 +180,231 @@
             toggle.type = 'button';
             toggle.className = 'cfd-color-picker__toggle';
             toggle.innerHTML = '<span class="cfd-color-picker__swatch"></span>' +
-                '<span class="cfd-color-picker__hex">' + currentColor + '</span>' +
+                '<span class="cfd-color-picker__hex">' + (hasColor ? currentColor : 'Sin color') + '</span>' +
                 '<span class="cfd-color-picker__chevron"></span>';
-            toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = currentColor;
-
-            // Expandable panel
-            var panel = document.createElement('div');
-            panel.className = 'cfd-color-picker__panel';
-            panel.style.display = 'none';
-
-            // Hex display field
-            var hexDisplay = document.createElement('div');
-            hexDisplay.className = 'cfd-color-picker__value-display';
-            hexDisplay.innerHTML = '<span class="cfd-color-picker__label">HEX:</span>' +
-                                 '<input type="text" class="cfd-color-picker__input" readonly value="' + currentColor + '">';
-            panel.appendChild(hexDisplay);
-
-            var pickerMount = document.createElement('div');
-            pickerMount.className = 'cfd-color-picker__mount';
-            panel.appendChild(pickerMount);
-
-            // Clear button
-            var clearBtn = document.createElement('button');
-            clearBtn.type = 'button';
-            clearBtn.className = 'cfd-color-picker__clear';
-            clearBtn.textContent = 'Borrar color';
-            clearBtn.style.display = currentColor ? 'inline-block' : 'none';
-            panel.appendChild(clearBtn);
+            toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = hasColor ? currentColor : 'transparent';
 
             wrapper.appendChild(toggle);
-            wrapper.appendChild(panel);
 
             // Insert after the wp-picker-container (or after the input)
             var insertAfter = wpContainer || acfInput;
             insertAfter.parentNode.insertBefore(wrapper, insertAfter.nextSibling);
 
-            // Create iro.js instance
-            var picker = new iro.ColorPicker(pickerMount, {
-                width: COLOR_PICKER_WIDTH,
-                color: currentColor || '#3a86ff',
-                borderWidth: 2,
-                borderColor: 'rgba(0,0,0,0.08)',
-                handleRadius: 12,
-                padding: 4,
-                layout: [
-                    {
-                        component: iro.ui.Wheel,
-                        options: {
-                            wheelLightness: true
-                        }
-                    },
-                    {
-                        component: iro.ui.Slider,
-                        options: {
-                            sliderType: 'value'
-                        }
-                    }
-                ]
-            });
+            // Create the portal panel (will be appended to body when opened)
+            var panel = document.createElement('div');
+            panel.className = 'cfd-color-picker__portal';
+            
+            // Build panel contents
+            var panelInner = document.createElement('div');
+            panelInner.className = 'cfd-color-picker__panel-inner';
+            
+            // HEX display with live swatch preview
+            var hexDisplay = document.createElement('div');
+            hexDisplay.className = 'cfd-color-picker__value-display';
+            hexDisplay.innerHTML = 
+                '<span class="cfd-color-picker__swatch-preview"></span>' +
+                '<span class="cfd-color-picker__label">HEX</span>' +
+                '<input type="text" class="cfd-color-picker__input" readonly value="' + (hasColor ? currentColor : '') + '">';
+            panelInner.appendChild(hexDisplay);
+            
+            // Initialize the swatch preview
+            var initialSwatch = hexDisplay.querySelector('.cfd-color-picker__swatch-preview');
+            if (initialSwatch) {
+                initialSwatch.style.backgroundColor = hasColor ? currentColor : 'transparent';
+                if (!hasColor) {
+                    initialSwatch.classList.add('cfd-color-picker__swatch-preview--empty');
+                }
+            }
 
-            iroInstances.push(picker);
+            var pickerMount = document.createElement('div');
+            pickerMount.className = 'cfd-color-picker__mount';
+            panelInner.appendChild(pickerMount);
 
-            // Sync iro → ACF input
-            picker.on('color:change', function (color) {
-                var hex = color.hexString;
-                acfInput.value = hex;
+            // Clear button (styled as red underlined link)
+            var clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'cfd-color-picker__clear';
+            clearBtn.textContent = 'Borrar color';
+            clearBtn.style.display = hasColor ? 'inline-block' : 'none';
+            panelInner.appendChild(clearBtn);
+            
+            panel.appendChild(panelInner);
 
-                // Trigger change event so ACF registers the value
-                var evt = new Event('input', { bubbles: true });
-                acfInput.dispatchEvent(evt);
-                var changeEvt = new Event('change', { bubbles: true });
-                acfInput.dispatchEvent(changeEvt);
-
-                // Update our swatch + hex display
-                toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = hex;
-                toggle.querySelector('.cfd-color-picker__hex').textContent = hex;
+            // Create iro.js instance (deferred until first open for performance)
+            var picker = null;
+            var pickerInitialized = false;
+            
+            function initPicker() {
+                if (pickerInitialized) return;
+                pickerInitialized = true;
                 
-                // Update internal panel hex display
-                var internalHex = panel.querySelector('.cfd-color-picker__input');
-                if (internalHex) internalHex.value = hex;
-                
-                clearBtn.style.display = 'inline-block';
-            });
+                picker = new iro.ColorPicker(pickerMount, {
+                    width: COLOR_PICKER_WIDTH,
+                    color: acfInput.value || '#3a86ff',
+                    borderWidth: 2,
+                    borderColor: 'rgba(0,0,0,0.08)',
+                    handleRadius: 14,
+                    padding: 6,
+                    layout: [
+                        {
+                            component: iro.ui.Wheel,
+                            options: {
+                                wheelLightness: true
+                            }
+                        },
+                        {
+                            component: iro.ui.Slider,
+                            options: {
+                                sliderType: 'value'
+                            }
+                        }
+                    ]
+                });
 
-            // Initial HEX populate (ensure it shows correctly even before any interaction)
-            var initialHexBox = panel.querySelector('.cfd-color-picker__input');
-            if (initialHexBox) initialHexBox.value = currentColor;
+                iroInstances.push(picker);
+
+                // Sync iro → ACF input (fires on every color change including drag)
+                picker.on('color:change', function (color) {
+                    var hex = color.hexString;
+                    acfInput.value = hex;
+
+                    // Trigger change event so ACF registers the value
+                    var evt = new Event('input', { bubbles: true });
+                    acfInput.dispatchEvent(evt);
+                    var changeEvt = new Event('change', { bubbles: true });
+                    acfInput.dispatchEvent(changeEvt);
+
+                    // Update toggle swatch + hex display
+                    toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = hex;
+                    toggle.querySelector('.cfd-color-picker__hex').textContent = hex;
+                    
+                    // Update panel HEX display with dynamic background
+                    updateHexDisplay(panel, hex);
+                    
+                    clearBtn.style.display = 'inline-block';
+                });
+            }
 
             // Toggle panel open/close
             toggle.addEventListener('click', function (e) {
                 e.preventDefault();
-                var isOpen = panel.style.display !== 'none';
-                panel.style.display = isOpen ? 'none' : 'block';
-                wrapper.classList.toggle('is-open', !isOpen);
-
-                // Extreme Stacking Context Fix: Boost the parent ACF field z-index
-                var fieldParent = field.closest('.acf-field');
-                if (fieldParent) {
-                    fieldParent.classList.toggle('cfd-field--active-picker', !isOpen);
+                e.stopPropagation();
+                
+                var isCurrentlyOpen = wrapper.classList.contains('is-open');
+                
+                // Close any other open picker first
+                if (activePickerData && activePickerData.wrapper !== wrapper) {
+                    closeActivePortal();
                 }
-
-                // Resize the picker after opening (iro.js needs this)
-                // Also ensure the hex value is shown
-                if (!isOpen) {
-                    picker.resize(Math.min(COLOR_PICKER_WIDTH, wrapper.offsetWidth - 32));
-                    var internalHex = panel.querySelector('.cfd-color-picker__input');
-                    if (internalHex) internalHex.value = acfInput.value || '#000000';
+                
+                if (isCurrentlyOpen) {
+                    // Close this picker
+                    closeActivePortal();
+                } else {
+                    // Open this picker (PORTAL PATTERN)
+                    wrapper.classList.add('is-open');
+                    
+                    // Append panel to body
+                    document.body.appendChild(panel);
+                    
+                    // Position panel relative to toggle
+                    positionPortalPanel(panel, toggle);
+                    
+                    // Initialize picker if not yet done
+                    initPicker();
+                    
+                    // Set current color in picker
+                    var currentVal = acfInput.value || '#3a86ff';
+                    if (picker) {
+                        picker.color.hexString = currentVal;
+                    }
+                    
+                    // Update HEX display
+                    updateHexDisplay(panel, acfInput.value || '');
+                    
+                    // Show clear button only if there's a color
+                    clearBtn.style.display = acfInput.value ? 'inline-block' : 'none';
+                    
+                    // Trigger animation
+                    requestAnimationFrame(function() {
+                        panel.classList.add('cfd-color-picker__portal--visible');
+                    });
+                    
+                    // Track active picker
+                    activePickerData = {
+                        panel: panel,
+                        wrapper: wrapper,
+                        picker: picker,
+                        toggle: toggle,
+                        acfInput: acfInput,
+                        clearBtn: clearBtn
+                    };
+                    
+                    // Resize picker after DOM is ready
+                    setTimeout(function() {
+                        if (picker) {
+                            picker.resize(Math.min(COLOR_PICKER_WIDTH, panel.offsetWidth - 48));
+                        }
+                    }, 50);
                 }
             });
 
             // Clear button
             clearBtn.addEventListener('click', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
+                
                 acfInput.value = '';
                 var evt = new Event('change', { bubbles: true });
                 acfInput.dispatchEvent(evt);
+                
                 toggle.querySelector('.cfd-color-picker__swatch').style.backgroundColor = 'transparent';
                 toggle.querySelector('.cfd-color-picker__hex').textContent = 'Sin color';
+                
+                updateHexDisplay(panel, '');
                 clearBtn.style.display = 'none';
+                
+                // Close the portal after clearing
+                closeActivePortal();
             });
         });
     }
 
-    // ─── Global: Close color pickers on click outside ───────
+    // ─── Global: Close color picker portal on click outside ───────
     document.addEventListener('click', function (e) {
-        var openPickers = document.querySelectorAll('.cfd-color-picker.is-open');
-        openPickers.forEach(function (wrapper) {
-            // If the click was NOT inside this specific picker wrapper, close it
-            if (!wrapper.contains(e.target)) {
-                var panel = wrapper.querySelector('.cfd-color-picker__panel');
-                if (panel) {
-                    panel.style.display = 'none';
-                    wrapper.classList.remove('is-open');
-                    
-                    // Remove field boosting
-                    var field = wrapper.closest('.acf-field');
-                    if (field) {
-                        field.classList.remove('cfd-field--active-picker');
-                    }
-                }
-            }
-        });
+        if (!activePickerData) return;
+        
+        var panel = activePickerData.panel;
+        var toggle = activePickerData.toggle;
+        
+        // Check if click was inside the portal panel or the toggle
+        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+            closeActivePortal();
+        }
     });
+    
+    // ─── Close portal on Escape key ───────
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && activePickerData) {
+            closeActivePortal();
+        }
+    });
+    
+    // ─── Reposition portal on scroll/resize ───────
+    var repositionTimeout = null;
+    function handleScrollResize() {
+        if (!activePickerData) return;
+        
+        clearTimeout(repositionTimeout);
+        repositionTimeout = setTimeout(function() {
+            if (activePickerData) {
+                positionPortalPanel(activePickerData.panel, activePickerData.toggle);
+            }
+        }, 10);
+    }
+    
+    window.addEventListener('scroll', handleScrollResize, { passive: true });
+    window.addEventListener('resize', handleScrollResize, { passive: true });
 
     // ═══════════════════════════════════════════════════════
     // 2. DATE/TIME PICKERS — Enlarge touch targets

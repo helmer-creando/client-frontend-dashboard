@@ -1329,51 +1329,10 @@
     flex-shrink: 0;
 }
 
-.cfd-color-picker.is-open .cfd-color-picker__chevron {
-    transform: rotate(-135deg);
-}
+/* NOTE: .cfd-color-picker__panel styles moved to PORTAL section below (v3.4.0)
+   The panel is now appended to <body> to bypass stacking context issues. */
 
-.cfd-color-picker__panel {
-    margin-top: 0.65rem;
-    padding: 1rem;
-    background: var(--white, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: var(--radius, 12px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    animation: cd-slideDown 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.cfd-color-picker__mount {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-}
-
-/* Make iro.js handles bigger for touch */
-.cfd-color-picker .IroHandle circle {
-    stroke-width: 3 !important;
-}
-
-.cfd-color-picker__clear {
-    background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: var(--radius-s, 8px);
-    padding: 0.45rem 0.85rem;
-    font-size: var(--text-xs, 0.75rem);
-    font-family: inherit;
-    color: var(--text-dark-muted, #8A817A);
-    cursor: pointer;
-    transition: all 0.2s;
-    min-height: 36px;
-}
-
-.cfd-color-picker__clear:hover {
-    border-color: rgba(0, 0, 0, 0.15);
-    color: var(--text-dark, #2C2825);
-}
+/* NOTE: .cfd-color-picker__clear styles moved to PORTAL section (v3.4.0) */
 
 /* ── Date / Time / DateTime Pickers ─────────────────── */
 /* jQuery UI datepicker popup — styled for dashboard context */
@@ -2289,11 +2248,6 @@
         white-space: nowrap !important;
     }
 
-    /* ── Mobile: Color picker — full width ── */
-    .cfd-color-picker__panel {
-        padding: 0.75rem !important;
-    }
-
     /* ── Mobile: Tab bar — scroll hint ── */
     .cd-acf-form .acf-tab-group {
         padding-right: 1.5rem !important;
@@ -2725,7 +2679,14 @@
     box-shadow: var(--kh-elevation-2) !important;
 }
 
-/* ── Missing Color Picker UI ────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   COLOR PICKER — PORTAL PATTERN (v3.4.0)
+   ══════════════════════════════════════════════════════════════
+   The picker panel is appended to <body> when opened, completely
+   bypassing all stacking context issues from parent elements.
+   Position is calculated via getBoundingClientRect().
+   ══════════════════════════════════════════════════════════════ */
+
 .cfd-color-picker {
     position: relative;
     margin: var(--space-s, 0.75rem) 0;
@@ -2734,108 +2695,263 @@
     visibility: visible !important;
     min-height: 56px !important;
     opacity: 1 !important;
-    overflow: visible !important;
 }
 
-.cfd-color-picker.is-open {
-    z-index: 1000 !important;
-}
-
-/* Parent field boost - the definitive fix for stacking context issues */
-.acf-field.cfd-field--active-picker {
-    z-index: 10000 !important;
-    position: relative !important;
-}
-
+/* Toggle button — the swatch + hex display */
 .cfd-color-picker__toggle {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-xs, 0.5rem);
-    padding: var(--space-xs, 0.4rem) var(--space-s, 0.75rem);
-    background: #fff;
-    border: 1px solid var(--border, #E2DCD5);
-    border-radius: var(--radius-s, 6px);
+    gap: var(--space-s, 0.65rem);
+    padding: 0.65rem 1rem;
+    background: var(--white, #fff);
+    border: 1.5px solid var(--kh-surface-container-highest, #E4E0D6);
+    border-radius: var(--radius-m, 12px);
     cursor: pointer;
-    font-size: var(--text-s, 0.875rem);
+    font-size: var(--text-m, 0.95rem);
     color: var(--text-dark, #2C2825);
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    min-height: 52px;
+    width: 100%;
+    max-width: 280px;
+    text-align: left;
 }
 
 .cfd-color-picker__toggle:hover {
-    border-color: var(--primary, #8B7355);
+    border-color: var(--kh-primary, #443B33);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.cfd-color-picker__toggle:focus-visible {
+    outline: none;
+    border-color: var(--kh-primary, #443B33);
+    box-shadow: 0 0 0 3px rgba(68, 59, 51, 0.15);
+}
+
+.cfd-color-picker.is-open .cfd-color-picker__toggle {
+    border-color: var(--kh-primary, #443B33);
+    box-shadow: 0 0 0 3px rgba(68, 59, 51, 0.1);
+}
+
+/* Swatch in toggle button */
 .cfd-color-picker__swatch {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    border: 1px solid rgba(0,0,0,0.1);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    /* Checkerboard pattern for transparency */
+    background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+    position: relative;
+    overflow: hidden;
 }
 
-.cfd-color-picker__panel {
+/* Overlay for the actual color */
+.cfd-color-picker__swatch::after {
+    content: '';
     position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 9999 !important;
-    background: #fff;
-    padding: var(--space-m, 1rem);
-    border-radius: var(--radius-m, 16px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.25) !important;
-    border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    inset: 0;
+    border-radius: 6px;
+    background: inherit;
 }
 
+/* HEX text in toggle */
+.cfd-color-picker__hex {
+    flex: 1;
+    font-family: var(--font-mono, 'SF Mono', Monaco, monospace);
+    font-size: var(--text-s, 0.875rem);
+    font-weight: 600;
+    color: var(--kh-primary, #443B33);
+    letter-spacing: 0.02em;
+}
+
+/* Chevron indicator */
+.cfd-color-picker__chevron {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--kh-outline, #7F766C);
+    border-bottom: 2px solid var(--kh-outline, #7F766C);
+    transform: rotate(45deg);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.cfd-color-picker.is-open .cfd-color-picker__chevron {
+    transform: rotate(-135deg);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PORTAL PANEL — Appended to <body>, absolutely positioned
+   ══════════════════════════════════════════════════════════════ */
+.cfd-color-picker__portal {
+    position: absolute;
+    z-index: 999999 !important; /* Maximum z-index to ensure always on top */
+    background: var(--white, #fff);
+    border-radius: var(--radius-l, 20px);
+    box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.22),
+        0 10px 25px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    max-width: 340px;
+    min-width: 280px;
+}
+
+.cfd-color-picker__portal--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.cfd-color-picker__portal--closing {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    pointer-events: none;
+}
+
+.cfd-color-picker__panel-inner {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* ── HEX Value Display with Live Swatch ── */
 .cfd-color-picker__value-display {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 1.25rem;
     background: var(--kh-surface-container, #F5F3F1);
-    padding: 0.6rem 0.8rem;
-    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
     border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    width: 100%;
+}
+
+/* Live color swatch preview in the panel */
+.cfd-color-picker__swatch-preview {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    transition: background-color 0.1s ease;
+    position: relative;
+}
+
+/* Checkerboard for empty/transparent state */
+.cfd-color-picker__swatch-preview--empty {
+    background-image:
+        linear-gradient(45deg, #ddd 25%, transparent 25%),
+        linear-gradient(-45deg, #ddd 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ddd 75%),
+        linear-gradient(-45deg, transparent 75%, #ddd 75%) !important;
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+    background-color: #fff !important;
 }
 
 .cfd-color-picker__label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    color: var(--kh-primary, #443B33) !important;
-    letter-spacing: 0.05em;
-    opacity: 0.9;
+    color: var(--kh-outline, #7F766C);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    flex-shrink: 0;
 }
 
 .cfd-color-picker__input {
-    background: #fff !important;
+    flex: 1;
+    background: var(--white, #fff) !important;
     border: 1px solid var(--kh-surface-container-highest, #E4E0D6) !important;
-    font-family: var(--font-mono, monospace);
+    font-family: var(--font-mono, 'SF Mono', Monaco, monospace);
     font-size: 1rem;
     font-weight: 700 !important;
     color: var(--kh-primary, #443B33) !important;
-    width: 100%;
     outline: none;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 0.4rem 0.65rem;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 0;
+    letter-spacing: 0.03em;
 }
 
+.cfd-color-picker__input:focus {
+    border-color: var(--kh-primary, #443B33) !important;
+}
+
+/* ── iro.js mount area ── */
+.cfd-color-picker__mount {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
+/* Make iro.js handles bigger for touch */
+.cfd-color-picker__mount .IroHandle circle {
+    stroke-width: 3 !important;
+}
+
+/* ── Clear/Delete Color Button — Red Underlined Link ── */
 .cfd-color-picker__clear {
     display: inline-block !important;
     width: auto !important;
-    margin: 1.25rem auto 0 !important;
-    padding: 0 !important;
+    margin: 0.5rem auto 0 !important;
+    padding: 0.25rem 0 !important;
     text-align: center;
     background: none !important;
     border: none !important;
-    border-bottom: 1.5px solid #d32f2f !important;
+    border-bottom: 2px solid #d32f2f !important;
     color: #d32f2f !important;
-    font-size: 0.85rem !important;
+    font-size: 0.875rem !important;
     font-weight: 600 !important;
     cursor: pointer;
     text-decoration: none !important;
-    line-height: 1.2;
+    line-height: 1.3;
+    transition: all 0.2s ease;
 }
 
 .cfd-color-picker__clear:hover {
     color: #b71c1c !important;
     border-bottom-color: #b71c1c !important;
+    transform: translateY(-1px);
+}
+
+.cfd-color-picker__clear:active {
+    transform: translateY(0);
+}
+
+/* ── Mobile Adjustments ── */
+@media (max-width: 480px) {
+    .cfd-color-picker__portal {
+        min-width: 260px;
+        max-width: calc(100vw - 32px);
+    }
+    
+    .cfd-color-picker__panel-inner {
+        padding: 1rem;
+    }
+    
+    .cfd-color-picker__toggle {
+        max-width: 100%;
+    }
+    
+    .cfd-color-picker__swatch-preview {
+        width: 32px;
+        height: 32px;
+    }
 }
 
 /* Top Back Link */
