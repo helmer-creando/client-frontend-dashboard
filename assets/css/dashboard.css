@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
 /* ════════════════════════════════════════════════════════
        MI ESPACIO — DASHBOARD STYLES
        All values use ACSS variables with safe fallbacks.
@@ -2643,8 +2645,10 @@
 /* ── Missing Color Picker UI ────────────────────────────── */
 .cfd-color-picker {
     position: relative;
-    margin-top: var(--space-xs, 0.5rem);
+    margin: var(--space-s, 0.75rem) 0;
     font-family: var(--font-primary, system-ui, sans-serif);
+    display: block;
+    min-height: 44px;
 }
 
 .cfd-color-picker__toggle {

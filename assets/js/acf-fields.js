@@ -42,7 +42,10 @@
      * the value back to ACF's hidden input.
      */
     function initColorPickers(container) {
-        if (typeof iro === 'undefined') return;
+        if (typeof iro === 'undefined') {
+            console.warn('iro is not defined');
+            return;
+        }
 
         var scope = container || document;
         var fields = scope.querySelectorAll('.cd-acf-form .acf-field-color-picker');
