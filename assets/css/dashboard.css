@@ -2482,23 +2482,32 @@
 }
 
 .cd-modal__btn--primary {
-    background: var(--kh-primary, #443B33);
+    background: var(--primary-dark, #443B33);
     color: #fff;
 }
 
 .cd-modal__btn--primary:hover {
+    background: var(--primary, #5a4f45);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(68, 59, 51, 0.3);
 }
 
+.cd-modal__btn--primary:active {
+    background: var(--semi-dark-primary, #3d352e);
+}
+
 .cd-modal__btn--secondary {
-    background: var(--kh-surface-container, #F5F3F1);
-    color: var(--kh-on-surface, #242424);
-    border: 1px solid var(--kh-surface-container-highest, #E4E0D6);
+    background: var(--bg-light, #F5F3F1);
+    color: var(--text-dark, #242424);
+    border: 1px solid var(--border-light, #E4E0D6);
 }
 
 .cd-modal__btn--secondary:hover {
-    background: var(--kh-surface-container-high, #EBE9E1);
+    background: var(--bg-medium, #EBE9E1);
+}
+
+.cd-modal__btn--secondary:active {
+    background: var(--bg-dark, #d8d5cc);
 }
 
 .cd-modal__accept {
@@ -3328,7 +3337,7 @@
     padding: 0 var(--space-s, 1rem);
     border: none;
     border-radius: 100px; /* Fully rounded pill shape */
-    background: var(--bg-ultra-dark, #1a1a2e);
+    background: var(--primary-dark, #1a1a2e);
     color: #fff;
     cursor: pointer;
     transition: background 0.2s ease, transform 0.2s ease;
@@ -3343,10 +3352,11 @@
 }
 
 .cfd-mobile-toggle:hover {
-    background: var(--bg-dark, #2d2d44);
+    background: var(--primary, #2d2d44);
 }
 
 .cfd-mobile-toggle:active {
+    background: var(--semi-dark-primary, #252540);
     transform: scale(0.95);
 }
 
@@ -3399,12 +3409,14 @@
     -webkit-backdrop-filter: blur(2px);
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .cfd-sidebar-overlay.is-visible {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 
 /* ── Sidebar mobile state ──
