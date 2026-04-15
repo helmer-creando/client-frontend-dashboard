@@ -955,7 +955,6 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     
     // Editor tips after form
     cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
-    cfd_render_concierge_tip( 'Color de Acento', 'Puedes usar {llaves} alrededor de las palabras importantes en los textos para aplicar tu color de marca (ejemplo: Nuestro equipo {profesional}).' );
 
     echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 }

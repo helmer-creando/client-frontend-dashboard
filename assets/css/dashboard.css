@@ -1185,18 +1185,17 @@
 }
 
 /* ── Sticky save bar ──────────────────────────────────
-       Fixed to the bottom of the viewport with a frosted glass
-       background. Always reachable on long forms without
-       scrolling back to the bottom. ──────────────────────── */
+       Fixed to the bottom of the viewport with a dark brand
+       background so the save action pops for non-techy users.
+       Always reachable on long forms. ────────────────────── */
 .cd-acf-form .acf-form-submit {
     position: sticky !important;
     bottom: 0 !important;
     z-index: 50 !important;
-    background: color-mix(in srgb, var(--white, #fff) 85%, transparent) !important;
-    backdrop-filter: blur(16px) saturate(1.2) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(1.2) !important;
+    background: var(--primary-ultra-dark) !important;
     padding: var(--space-s, 0.75rem) var(--space-m, 1rem) !important;
-    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-top: 1px solid var(--primary-dark) !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18) !important;
     margin: 0 calc(-1 * var(--space-l, 2rem)) !important;
     margin-top: var(--space-s, 0.75rem) !important;
     margin-bottom: 0 !important;
@@ -1208,6 +1207,19 @@
     justify-content: flex-end !important;
     gap: var(--space-s, 1rem) !important;
     border-radius: 0 0 var(--radius-l, 18px) var(--radius-l, 18px) !important;
+}
+
+/* Light save button on the dark sticky bar */
+.cd-acf-form .acf-form-submit .kh-editor__save,
+.cd-acf-form .acf-form-submit .cd-save-btn {
+    background-color: var(--base-ultra-light) !important;
+    color: var(--primary-ultra-dark) !important;
+}
+
+.cd-acf-form .acf-form-submit .kh-editor__save:hover,
+.cd-acf-form .acf-form-submit .cd-save-btn:hover {
+    background-color: var(--white) !important;
+    color: var(--primary-ultra-dark) !important;
 }
 
 /* Hide default ACF submit — we render our own via html_submit_button */
