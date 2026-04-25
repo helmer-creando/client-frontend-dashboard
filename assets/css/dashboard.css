@@ -3676,20 +3676,40 @@
 }
 
 /* ── Editor header actions zone ────────────────────────── */
+/* Override the base .kh-editor__header (which uses align-items:center
+   with !important) — we need flex-start so a wrapped preview link doesn't
+   re-center weirdly, plus row layout for the header-main contents. */
 .kh-editor__header--with-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--space-m, 1rem);
-    flex-wrap: wrap;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: var(--space-m, 1rem) !important;
 }
 
 .kh-editor__header-main {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-xs, 0.5rem);
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-s, 0.85rem) var(--space-m, 1.25rem);
     flex: 1 1 auto;
     min-width: 0;
+}
+
+.kh-editor__header-main .kh-editor__title {
+    margin: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+/* Preview link: keep it at content width, never stretch in a flex column. */
+.kh-editor__header-main .kh-editor__preview,
+.kh-editor__header-main .cd-preview-link {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    align-self: center !important;
 }
 
 .kh-editor__header-actions {
@@ -3775,15 +3795,24 @@
 }
 
 /* ── Inline save hint (replaces the standalone consejo) ── */
+/* Sits inside the dark sticky save bar — needs solid contrast on dark bg. */
 .kh-editor__save-hint {
-    color: color-mix(in srgb, var(--base-ultra-light, #FAFAFA) 75%, transparent);
-    font-size: 0.85rem;
-    margin-right: auto; /* pushes the save button to the right inside the sticky bar */
-    padding-left: var(--space-xs, 0.5rem);
-    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.92) !important;
+    font-size: var(--text-s, 0.95rem) !important;
+    font-weight: 500 !important;
+    margin-right: auto !important;
+    padding-left: var(--space-s, 0.85rem) !important;
+    line-height: 1.4 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    max-width: 38ch;
 }
 
 /* ── Delete confirm modal ─────────────────────────────── */
+/* Heavy use of !important here: the parent Bricks/theme stylesheet
+   applies text-transform: lowercase and other inheritance that bleeds
+   through. The modal must look identical regardless of the surrounding
+   theme. */
 .cfd-confirm-modal {
     position: fixed;
     inset: 0;
@@ -3796,6 +3825,13 @@
 
 .cfd-confirm-modal[hidden] {
     display: none;
+}
+
+.cfd-confirm-modal *,
+.cfd-confirm-modal *::before,
+.cfd-confirm-modal *::after {
+    text-transform: none !important;
+    letter-spacing: 0 !important;
 }
 
 .cfd-confirm-modal__backdrop {
@@ -3812,10 +3848,11 @@
     background-color: var(--white, #fff);
     border-radius: var(--radius-l, 16px);
     padding: var(--space-l, 2rem);
-    max-width: 480px;
+    max-width: 460px;
     width: 100%;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
     animation: cfd-modal-in 200ms ease-out;
+    text-align: center;
 }
 
 @keyframes cfd-modal-in {
@@ -3824,74 +3861,89 @@
 }
 
 .cfd-confirm-modal__title {
-    font-size: var(--text-l, 1.25rem);
-    font-weight: 700;
-    color: var(--kh-on-surface, #242424);
-    margin: 0 0 var(--space-s, 0.75rem) 0;
+    font-size: var(--text-l, 1.4rem) !important;
+    font-weight: 700 !important;
+    color: var(--kh-on-surface, #242424) !important;
+    margin: 0 0 var(--space-s, 0.75rem) 0 !important;
+    line-height: 1.25 !important;
+    text-align: center !important;
 }
 
 .cfd-confirm-modal__body {
-    color: var(--kh-on-surface-variant, #5F5953);
-    margin: 0 0 var(--space-l, 1.5rem) 0;
-    line-height: 1.5;
+    color: var(--kh-on-surface-variant, #5F5953) !important;
+    margin: 0 0 var(--space-l, 1.75rem) 0 !important;
+    line-height: 1.5 !important;
+    font-size: 1rem !important;
+    text-align: center !important;
 }
 
 .cfd-confirm-modal__body strong {
-    color: var(--kh-on-surface, #242424);
-    font-weight: 700;
+    color: var(--kh-on-surface, #242424) !important;
+    font-weight: 700 !important;
 }
 
 .cfd-confirm-modal__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-s, 0.75rem);
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: var(--space-s, 0.85rem) !important;
 }
 
 .cfd-confirm-modal__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 48px;
-    padding: 0 var(--space-m, 1.5rem);
-    border-radius: 100px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    cursor: pointer;
-    border: 1px solid transparent;
-    font-family: inherit;
-    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 48px !important;
+    padding: 0 var(--space-m, 1.5rem) !important;
+    border-radius: 100px !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    border: 1px solid transparent !important;
+    font-family: inherit !important;
+    line-height: 1 !important;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 120ms ease !important;
 }
 
 .cfd-confirm-modal__btn--cancel {
-    background-color: transparent;
-    color: var(--kh-on-surface, #242424);
-    border-color: var(--kh-outline, #7F766C);
+    background-color: transparent !important;
+    color: var(--kh-on-surface, #242424) !important;
+    border-color: var(--kh-outline, #7F766C) !important;
 }
 
 .cfd-confirm-modal__btn--cancel:hover {
-    background-color: var(--kh-surface-variant, #EBE6DF);
+    background-color: var(--kh-surface-variant, #EBE6DF) !important;
+    color: var(--kh-on-surface, #242424) !important;
 }
 
+/* Confirm: enforced red regardless of theme overrides on <a> elements. */
+.cfd-confirm-modal a.cfd-confirm-modal__btn--confirm,
 .cfd-confirm-modal__btn--confirm {
-    background-color: var(--kh-error, #B3261E);
-    color: var(--white, #fff);
+    background-color: #B3261E !important;
+    background: #B3261E !important;
+    color: #FFFFFF !important;
+    border-color: #B3261E !important;
 }
 
+.cfd-confirm-modal a.cfd-confirm-modal__btn--confirm:hover,
 .cfd-confirm-modal__btn--confirm:hover {
-    background-color: color-mix(in srgb, var(--kh-error, #B3261E) 85%, #000);
-    color: var(--white, #fff);
+    background-color: #8C1D17 !important;
+    background: #8C1D17 !important;
+    color: #FFFFFF !important;
+    border-color: #8C1D17 !important;
+    transform: translateY(-1px) !important;
 }
 
 .cfd-confirm-modal__btn--confirm:focus-visible,
 .cfd-confirm-modal__btn--cancel:focus-visible {
-    outline: 3px solid var(--accent, #A69279);
-    outline-offset: 2px;
+    outline: 3px solid var(--accent, #A69279) !important;
+    outline-offset: 2px !important;
 }
 
 .cfd-confirm-modal__btn.is-loading {
-    opacity: 0.7;
-    pointer-events: none;
+    opacity: 0.7 !important;
+    pointer-events: none !important;
 }
 
 body.cfd-modal-open {
@@ -4022,21 +4074,21 @@ body.cfd-modal-open {
 /* ── Modal mobile — destructive on bottom, full-width ──── */
 @media (max-width: 480px) {
     .cfd-confirm-modal__dialog {
-        padding: var(--space-m, 1.5rem);
+        padding: var(--space-m, 1.5rem) !important;
     }
 
     .cfd-confirm-modal__actions {
-        flex-direction: column-reverse; /* destructive at bottom */
-        gap: var(--space-xs, 0.5rem);
+        flex-direction: column-reverse !important; /* destructive at bottom */
+        gap: var(--space-xs, 0.5rem) !important;
     }
 
     .cfd-confirm-modal__btn {
-        width: 100%;
-        height: 52px;
+        width: 100% !important;
+        height: 52px !important;
     }
 
     /* Save hint hides on very small screens to keep the bar uncluttered */
     .kh-editor__save-hint {
-        display: none;
+        display: none !important;
     }
 }
