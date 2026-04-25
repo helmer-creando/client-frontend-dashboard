@@ -3505,3 +3505,538 @@
     justify-content: center;
     gap: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   v3.6 — Listing card redesign, status pill, empty state,
+   header actions, delete confirm modal, save hint, mobile.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Listing card v2 ─────────────────────────────────────── */
+/* Stretched-link technique: the card is position:relative; the
+   transparent overlay link covers it; explicit action buttons
+   sit on top via z-index so they remain clickable. */
+.kh-content-item {
+    position: relative;
+    transition:
+        background-color 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease,
+        border-color 180ms ease;
+}
+
+.kh-content-item:hover {
+    background-color: color-mix(in srgb, var(--primary-ultra-light, #FAF7F2) 60%, var(--white, #fff));
+    border-color: color-mix(in srgb, var(--primary, #6B5540) 25%, transparent);
+    box-shadow: var(--kh-elevation-1, 0 4px 12px rgba(0, 0, 0, 0.06));
+    transform: translateY(-1px);
+}
+
+.kh-content-item__link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    text-indent: -9999px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.kh-content-item__link:focus-visible {
+    outline: 3px solid var(--accent, #A69279);
+    outline-offset: 2px;
+}
+
+.kh-content-item__info,
+.kh-content-item__actions {
+    position: relative;
+    z-index: 2;
+}
+
+/* Title typography promoted; line-height tightened. */
+.kh-content-item__title {
+    font-size: var(--text-l, 1.15rem);
+    line-height: 1.3;
+    font-weight: 700;
+    margin: 0;
+}
+
+.kh-content-item__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+
+.kh-content-item__meta {
+    font-size: 0.875rem;
+    color: var(--kh-on-surface-variant, #5F5953);
+}
+
+/* Action buttons — must sit above the stretched link. */
+.kh-content-item__actions a,
+.kh-content-item__actions button {
+    position: relative;
+    z-index: 3;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+}
+
+/* ── Draft state + "En proceso (oculto)" pill ────────────── */
+.kh-content-item--draft {
+    border-left: 3px solid var(--accent, #C9A961);
+}
+
+.kh-content-item--draft .kh-content-item__title {
+    color: var(--kh-on-surface-variant, #5F5953);
+}
+
+.kh-content-item__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    background-color: color-mix(in srgb, var(--accent, #C9A961) 15%, transparent);
+    color: var(--primary-ultra-dark, #2C2218);
+    border: 1px solid color-mix(in srgb, var(--accent, #C9A961) 35%, transparent);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* ── Empty state ────────────────────────────────────────── */
+.kh-empty-state {
+    text-align: center;
+    padding: var(--space-xl, 3rem) var(--space-m, 1.5rem);
+    background-color: var(--kh-surface, #FAFAFA);
+    border: 1px dashed var(--kh-outline-variant, #CAC4BB);
+    border-radius: var(--kh-radius-m, 12px);
+    margin: var(--space-m, 1.5rem) 0;
+}
+
+.kh-empty-state__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background-color: var(--primary-ultra-light, #FAF7F2);
+    border-radius: 50%;
+    margin-bottom: var(--space-s, 1rem);
+}
+
+.kh-empty-state__icon .material-symbols-outlined {
+    font-size: 32px;
+    color: var(--primary, #6B5540);
+}
+
+.kh-empty-state__title {
+    font-size: var(--text-l, 1.25rem);
+    font-weight: 700;
+    color: var(--kh-on-surface, #242424);
+    margin: 0 0 0.5rem 0;
+}
+
+.kh-empty-state__text {
+    color: var(--kh-on-surface-variant, #5F5953);
+    margin: 0 0 var(--space-m, 1.5rem) 0;
+    max-width: 38ch;
+    margin-inline: auto;
+}
+
+.kh-empty-state__btn {
+    display: inline-flex;
+}
+
+/* ── "Agregar nuevo" button — palette-aware, brand-led ──── */
+/* Override the generic .kh-content__add grouping above so this
+   chrome action uses --primary-dark/--primary-ultra-light for
+   guaranteed contrast across any client palette. Focus uses
+   --accent (--action is deprecated in newer ACSS). */
+.cd-add-btn.kh-content__add,
+.kh-empty-state__btn.kh-content__add {
+    background-color: var(--primary-dark, #5A4535) !important;
+    color: var(--primary-ultra-light, #FAF7F2) !important;
+}
+
+.cd-add-btn.kh-content__add:hover,
+.kh-empty-state__btn.kh-content__add:hover {
+    background-color: var(--primary-light, #C9B79F) !important;
+    color: var(--primary-ultra-dark, #2C2218) !important;
+    filter: none !important;
+}
+
+.cd-add-btn.kh-content__add:focus-visible,
+.kh-empty-state__btn.kh-content__add:focus-visible {
+    outline: 3px solid var(--accent, #A69279) !important;
+    outline-offset: 3px !important;
+}
+
+/* ── Editor header actions zone ────────────────────────── */
+.kh-editor__header--with-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-m, 1rem);
+    flex-wrap: wrap;
+}
+
+.kh-editor__header-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs, 0.5rem);
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.kh-editor__header-actions {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.kh-editor__header-actions-menu {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs, 0.5rem);
+}
+
+.kh-editor__overflow-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background-color: transparent;
+    border: 1px solid var(--kh-outline-variant, #CAC4BB);
+    border-radius: 100px;
+    color: var(--kh-on-surface, #242424);
+    cursor: pointer;
+    transition: background-color 180ms ease, border-color 180ms ease;
+    font-family: inherit;
+}
+
+.kh-editor__overflow-toggle:hover {
+    background-color: var(--kh-surface-variant, #EBE6DF);
+    border-color: var(--kh-outline, #7F766C);
+}
+
+.kh-editor__overflow-toggle:focus-visible {
+    outline: 3px solid var(--accent, #A69279);
+    outline-offset: 2px;
+}
+
+/* Header action buttons — neutral chrome, danger variant for delete. */
+.kh-editor__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 1rem;
+    background-color: transparent;
+    border: 1px solid var(--kh-outline-variant, #CAC4BB);
+    border-radius: 100px;
+    color: var(--kh-on-surface, #242424);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.kh-editor__action .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.kh-editor__action:hover {
+    background-color: var(--kh-surface-variant, #EBE6DF);
+    border-color: var(--kh-outline, #7F766C);
+    color: var(--kh-on-surface, #242424);
+}
+
+.kh-editor__action:focus-visible {
+    outline: 3px solid var(--accent, #A69279);
+    outline-offset: 2px;
+}
+
+.kh-editor__action--danger {
+    color: var(--kh-error, #B3261E);
+    border-color: color-mix(in srgb, var(--kh-error, #B3261E) 30%, transparent);
+}
+
+.kh-editor__action--danger:hover {
+    background-color: var(--kh-error-container, #F9DEDC);
+    color: var(--kh-error, #B3261E);
+    border-color: var(--kh-error, #B3261E);
+}
+
+/* ── Inline save hint (replaces the standalone consejo) ── */
+.kh-editor__save-hint {
+    color: color-mix(in srgb, var(--base-ultra-light, #FAFAFA) 75%, transparent);
+    font-size: 0.85rem;
+    margin-right: auto; /* pushes the save button to the right inside the sticky bar */
+    padding-left: var(--space-xs, 0.5rem);
+    line-height: 1.3;
+}
+
+/* ── Delete confirm modal ─────────────────────────────── */
+.cfd-confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-m, 1.5rem);
+}
+
+.cfd-confirm-modal[hidden] {
+    display: none;
+}
+
+.cfd-confirm-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(20, 16, 12, 0.55);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+}
+
+.cfd-confirm-modal__dialog {
+    position: relative;
+    z-index: 1;
+    background-color: var(--white, #fff);
+    border-radius: var(--radius-l, 16px);
+    padding: var(--space-l, 2rem);
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    animation: cfd-modal-in 200ms ease-out;
+}
+
+@keyframes cfd-modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cfd-confirm-modal__title {
+    font-size: var(--text-l, 1.25rem);
+    font-weight: 700;
+    color: var(--kh-on-surface, #242424);
+    margin: 0 0 var(--space-s, 0.75rem) 0;
+}
+
+.cfd-confirm-modal__body {
+    color: var(--kh-on-surface-variant, #5F5953);
+    margin: 0 0 var(--space-l, 1.5rem) 0;
+    line-height: 1.5;
+}
+
+.cfd-confirm-modal__body strong {
+    color: var(--kh-on-surface, #242424);
+    font-weight: 700;
+}
+
+.cfd-confirm-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-s, 0.75rem);
+}
+
+.cfd-confirm-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    padding: 0 var(--space-m, 1.5rem);
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.cfd-confirm-modal__btn--cancel {
+    background-color: transparent;
+    color: var(--kh-on-surface, #242424);
+    border-color: var(--kh-outline, #7F766C);
+}
+
+.cfd-confirm-modal__btn--cancel:hover {
+    background-color: var(--kh-surface-variant, #EBE6DF);
+}
+
+.cfd-confirm-modal__btn--confirm {
+    background-color: var(--kh-error, #B3261E);
+    color: var(--white, #fff);
+}
+
+.cfd-confirm-modal__btn--confirm:hover {
+    background-color: color-mix(in srgb, var(--kh-error, #B3261E) 85%, #000);
+    color: var(--white, #fff);
+}
+
+.cfd-confirm-modal__btn--confirm:focus-visible,
+.cfd-confirm-modal__btn--cancel:focus-visible {
+    outline: 3px solid var(--accent, #A69279);
+    outline-offset: 2px;
+}
+
+.cfd-confirm-modal__btn.is-loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+body.cfd-modal-open {
+    overflow: hidden;
+}
+
+/* ── Sticky save bar — iOS safe area ─────────────────── */
+.cd-acf-form .acf-form-submit {
+    padding-bottom: max(var(--space-s, 0.75rem), env(safe-area-inset-bottom)) !important;
+}
+
+/* ── Listing card mobile + delete-icon-only on small ──── */
+@media (max-width: 768px) {
+    .kh-content-item {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .kh-content-item__info {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .kh-content-item__title {
+        font-size: 1.05rem;
+    }
+
+    /* Compact actions on small screens — icon-only Editar, square delete. */
+    .kh-content-item__actions {
+        gap: 0.4rem;
+        flex: 0 0 auto;
+        width: auto;
+        flex-wrap: nowrap;
+    }
+
+    .kh-content-item__edit {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        flex-grow: 0;
+        gap: 0;
+    }
+
+    .kh-content-item__edit > .material-symbols-outlined + * {
+        display: none; /* hide the "Editar" text label, keep icon */
+    }
+
+    .kh-content-item__edit {
+        font-size: 0; /* swallow the bare text node */
+    }
+
+    .kh-content-item__edit .material-symbols-outlined {
+        font-size: 22px;
+    }
+}
+
+/* ── Toolbar — full-width Filtrar on mobile ─────────────── */
+@media (max-width: 768px) {
+    .cd-cpt-toolbar__submit,
+    .cd-cpt-filter-toggle .cd-cpt-toolbar__submit {
+        align-self: stretch !important;
+        width: 100% !important;
+        height: 48px !important;
+    }
+}
+
+/* ── Editor header actions — mobile overflow menu ──────── */
+@media (max-width: 768px) {
+    .kh-editor__header--with-actions {
+        flex-direction: row;
+        align-items: flex-start;
+        flex-wrap: nowrap;
+    }
+
+    .kh-editor__header-actions {
+        order: 0;
+    }
+
+    .kh-editor__overflow-toggle {
+        display: inline-flex;
+    }
+
+    .kh-editor__header-actions-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        background-color: var(--white, #fff);
+        border: 1px solid var(--kh-outline-variant, #CAC4BB);
+        border-radius: var(--radius-m, 12px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+        padding: 6px;
+        min-width: 180px;
+        opacity: 0;
+        transform: translateY(-4px);
+        pointer-events: none;
+        transition: opacity 160ms ease, transform 160ms ease;
+        z-index: 100;
+    }
+
+    .kh-editor__header-actions.is-open .kh-editor__header-actions-menu {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .kh-editor__action {
+        justify-content: flex-start;
+        height: 44px;
+        padding: 0 0.85rem;
+        border: none;
+        border-radius: var(--radius-s, 8px);
+        width: 100%;
+    }
+
+    .kh-editor__action:hover {
+        border-color: transparent;
+    }
+
+    .kh-editor__action--danger {
+        border: none;
+    }
+}
+
+/* ── Modal mobile — destructive on bottom, full-width ──── */
+@media (max-width: 480px) {
+    .cfd-confirm-modal__dialog {
+        padding: var(--space-m, 1.5rem);
+    }
+
+    .cfd-confirm-modal__actions {
+        flex-direction: column-reverse; /* destructive at bottom */
+        gap: var(--space-xs, 0.5rem);
+    }
+
+    .cfd-confirm-modal__btn {
+        width: 100%;
+        height: 52px;
+    }
+
+    /* Save hint hides on very small screens to keep the bar uncluttered */
+    .kh-editor__save-hint {
+        display: none;
+    }
+}

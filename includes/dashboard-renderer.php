@@ -783,6 +783,25 @@ function cfd_render_concierge_tip( string $title, string $text ): void {
     echo '</div>';
 }
 
+/**
+ * Renders the shared delete-confirm modal. The modal stays hidden until
+ * a [data-cfd-delete] trigger fires; the JS reads data-title/data-trash-url
+ * off the trigger and populates the modal before showing it.
+ */
+function cfd_render_delete_modal(): void {
+    echo '<div class="cfd-confirm-modal" id="cfd-delete-modal" hidden role="dialog" aria-modal="true" aria-labelledby="cfd-delete-modal-title">';
+    echo '  <div class="cfd-confirm-modal__backdrop" data-cfd-modal-close></div>';
+    echo '  <div class="cfd-confirm-modal__dialog" role="document">';
+    echo '    <h2 id="cfd-delete-modal-title" class="cfd-confirm-modal__title">¿Eliminar esta entrada?</h2>';
+    echo '    <p class="cfd-confirm-modal__body">Vas a eliminar <strong data-cfd-modal-target></strong>. Podrás recuperarla desde la papelera durante 30 días.</p>';
+    echo '    <div class="cfd-confirm-modal__actions">';
+    echo '      <button type="button" class="cfd-confirm-modal__btn cfd-confirm-modal__btn--cancel" data-cfd-modal-close autofocus>Cancelar</button>';
+    echo '      <a href="#" class="cfd-confirm-modal__btn cfd-confirm-modal__btn--confirm" data-cfd-modal-confirm>Sí, eliminar</a>';
+    echo '    </div>';
+    echo '  </div>';
+    echo '</div>';
+}
+
 // ═══════════════════════════════════════════════════════════
 // 5. DASHBOARD HOME — List of editable pages + CPTs
 // ═══════════════════════════════════════════════════════════
@@ -944,7 +963,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         'submit_value' => 'Guardar mis cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
@@ -952,9 +971,6 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     echo '</div>'; // End cd-editor-form
 
     echo '</div>'; // End cd-editor
-    
-    // Editor tips after form
-    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
 
     echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
 }
@@ -1069,9 +1085,11 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     }
 
     // ── Query posts with WP_Query for pagination support ────
+    // Include 'draft' so items already created in wp-admin appear here with
+    // an "En proceso (oculto)" pill — dashboard itself only saves as 'publish'.
     $query_args = array(
         'post_type' => $cpt_slug,
-        'post_status' => 'publish',
+        'post_status' => array('publish', 'draft'),
         'posts_per_page' => $per_page,
         'paged' => $pag,
         'orderby' => $orderby,
@@ -1096,10 +1114,22 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     if (!$query->have_posts()) {
         if ($search !== '') {
-            echo '<p class="cd-cpt-list__empty">No se encontraron resultados para "' . esc_html($search) . '".</p>';
+            echo '<div class="kh-empty-state">';
+            echo '  <div class="kh-empty-state__icon"><span class="material-symbols-outlined">search_off</span></div>';
+            echo '  <h3 class="kh-empty-state__title">Sin resultados</h3>';
+            echo '  <p class="kh-empty-state__text">No se encontraron entradas para "<strong>' . esc_html($search) . '</strong>". Prueba con otra palabra.</p>';
+            echo '</div>';
         }
         else {
-            echo '<p class="cd-cpt-list__empty">Todavía no hay entradas. Haz clic en "Agregar nuevo" para crear una.</p>';
+            $create_url_empty = add_query_arg(array('create' => $cpt_slug), $dashboard_url);
+            echo '<div class="kh-empty-state">';
+            echo '  <div class="kh-empty-state__icon"><span class="material-symbols-outlined">inbox</span></div>';
+            echo '  <h3 class="kh-empty-state__title">Todavía no hay entradas</h3>';
+            echo '  <p class="kh-empty-state__text">Crea la primera para que aparezca aquí.</p>';
+            echo '  <a href="' . esc_url($create_url_empty) . '" class="kh-empty-state__btn cd-add-btn kh-content__add">';
+            echo '    <span class="material-symbols-outlined kh-icon--filled">add_circle</span> Agregar nuevo';
+            echo '  </a>';
+            echo '</div>';
         }
     }
     else {
@@ -1129,37 +1159,38 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             $modified_ts = get_the_modified_date('U', $p);
             $time_ago = human_time_diff($modified_ts, current_time('timestamp'));
 
-            // Post date for badge.
-            $month = get_the_date('M', $p);
-            $day   = get_the_date('d', $p);
+            $is_draft = ($p->post_status === 'draft');
 
-            echo '<div class="cd-cpt-card kh-content-item">';
-            
-            echo '  <div class="kh-content-item__left">';
-            echo '    <div class="kh-content-item__date">';
-            echo '      <span class="kh-content-item__date-month">' . esc_html($month) . '</span>';
-            echo '      <span class="kh-content-item__date-day">' . esc_html($day) . '</span>';
-            echo '    </div>';
-            echo '    <div class="kh-content-item__info">';
+            echo '<div class="cd-cpt-card kh-content-item' . ($is_draft ? ' kh-content-item--draft' : '') . '">';
+
+            // Stretched link: makes the entire card clickable while still
+            // allowing the explicit Editar/Eliminar buttons on top via z-index.
+            echo '  <a href="' . esc_url($edit_url) . '" class="kh-content-item__link" aria-label="' . esc_attr('Editar ' . $p->post_title) . '"></a>';
+
+            echo '  <div class="kh-content-item__info">';
+            echo '    <div class="kh-content-item__heading">';
             echo '      <h3 class="kh-content-item__title">' . esc_html($p->post_title) . '</h3>';
-            echo '      <p class="kh-content-item__meta">Editado hace ' . esc_html($time_ago) . '</p>';
-            if ( ! empty( $card_badges ) ) {
-                echo '      <div class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</div>';
+            if ($is_draft) {
+                echo '      <span class="kh-content-item__status">En proceso (oculto)</span>';
             }
             echo '    </div>';
-            echo '  </div>'; // kh-content-item__left
-            
+            echo '    <p class="kh-content-item__meta">Editado hace ' . esc_html($time_ago) . '</p>';
+            if ( ! empty( $card_badges ) ) {
+                echo '    <div class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</div>';
+            }
+            echo '  </div>';
+
             echo '  <div class="kh-content-item__actions">';
             echo '    <a href="' . esc_url($edit_url) . '" class="cd-cpt-card__edit kh-content-item__edit">';
             echo '      <span class="material-symbols-outlined">edit</span> Editar';
             echo '    </a>';
             if (current_user_can('delete_post', $p->ID)) {
-                echo '    <a href="' . esc_url($trash_url) . '" class="cd-cpt-card__delete kh-content-item__delete" onclick="return confirm(\'¿Estás seguro de que deseas eliminar esta entrada?\');">';
+                echo '    <button type="button" class="cd-cpt-card__delete kh-content-item__delete" data-cfd-delete data-id="' . esc_attr($p->ID) . '" data-title="' . esc_attr($p->post_title) . '" data-trash-url="' . esc_url($trash_url) . '" aria-label="' . esc_attr('Eliminar ' . $p->post_title) . '">';
                 echo '      <span class="material-symbols-outlined">delete</span>';
-                echo '    </a>';
+                echo '    </button>';
             }
-            echo '  </div>'; // kh-content-item__actions
-            
+            echo '  </div>';
+
             echo '</div>'; // End kh-content-item
         }
         wp_reset_postdata();
@@ -1206,6 +1237,8 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             echo '</nav>';
         }
     }
+
+    cfd_render_delete_modal();
 
     // Help banner at the bottom of the CPT list
     echo '<div class="kh-help-banner">';
@@ -1254,12 +1287,46 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         $dashboard_url
     );
 
+    // Build header-action URLs upfront so they can render in the page header.
+    $duplicate_url = add_query_arg(array(
+        'duplicate' => $cpt_slug,
+        'id'        => $post_id,
+        '_wpnonce'  => wp_create_nonce('cfd_duplicate_' . $post_id),
+    ), $dashboard_url);
+
+    $can_delete = current_user_can('delete_post', $post_id);
+    $trash_url = $can_delete ? add_query_arg(array(
+        'action'   => 'trash',
+        'id'       => $post_id,
+        '_wpnonce' => wp_create_nonce('cfd_trash_' . $post_id),
+    ), $dashboard_url) : '';
+
     echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
-    echo '<div class="cd-editor__header kh-editor__header">';
-    echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
+    echo '<div class="cd-editor__header kh-editor__header kh-editor__header--with-actions">';
+    echo '  <div class="kh-editor__header-main">';
+    echo '    <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
+    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
+    echo '  </div>';
+
+    // ── Header action zone: Duplicar + Eliminar ──
+    // Collapses to a `⋯` overflow menu on mobile (CSS-driven).
+    echo '  <div class="kh-editor__header-actions" data-cfd-header-actions>';
+    echo '    <button type="button" class="kh-editor__overflow-toggle" data-cfd-overflow-toggle aria-haspopup="true" aria-expanded="false" aria-label="Más acciones">';
+    echo '      <span class="material-symbols-outlined">more_vert</span>';
+    echo '    </button>';
+    echo '    <div class="kh-editor__header-actions-menu">';
+    echo '      <a href="' . esc_url($duplicate_url) . '" class="cd-duplicate-btn kh-editor__action">';
+    echo '        <span class="material-symbols-outlined">file_copy</span> Duplicar';
+    echo '      </a>';
+    if ($can_delete) {
+        echo '      <button type="button" class="cd-delete-link kh-editor__action kh-editor__action--danger" data-cfd-delete data-id="' . esc_attr($post_id) . '" data-title="' . esc_attr($post->post_title) . '" data-trash-url="' . esc_url($trash_url) . '">';
+        echo '        <span class="material-symbols-outlined">delete</span> Eliminar';
+        echo '      </button>';
+    }
+    echo '    </div>';
+    echo '  </div>';
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
@@ -1280,6 +1347,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     // Extensibility hook: before the editor form (e.g., translation links).
     do_action( 'cfd_editor_before_form', $post, $cpt_slug );
 
+    // Inline microcopy below pairs with the save button (replaces the standalone consejo card).
     acf_form(array(
         'post_id' => $post_id,
         'post_title' => true,
@@ -1288,51 +1356,17 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         'submit_value' => 'Guardar mis cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
-    // Actions moved here
-    echo '<div class="cd-editor__actions" style="margin-top: var(--space-l, 2rem);">';
-
-    // ── Duplicate button ──
-    $duplicate_url = add_query_arg(array(
-        'duplicate' => $cpt_slug,
-        'id'        => $post_id,
-        '_wpnonce'  => wp_create_nonce('cfd_duplicate_' . $post_id),
-    ), $dashboard_url);
-
-    echo '  <a href="' . esc_url($duplicate_url) . '" class="cd-duplicate-btn">';
-    echo '    <span class="material-symbols-outlined">file_copy</span> Duplicar';
-    echo '  </a>';
-
-    if (current_user_can('delete_post', $post_id)) {
-        // NOTE: nonce action changed from 'cd_trash_' to 'cfd_trash_'
-        // to match the verification in cfd_handle_cpt_delete().
-        $trash_url = add_query_arg(array(
-            'action' => 'trash',
-            'id' => $post_id,
-            '_wpnonce' => wp_create_nonce('cfd_trash_' . $post_id),
-        ), $dashboard_url);
-
-        echo '  <span class="cd-delete-wrap" id="cd-delete-wrap">';
-        echo '    <a href="#" class="cd-delete-link" id="cd-delete-trigger">Eliminar</a>';
-        echo '    <span class="cd-delete-confirm" id="cd-delete-confirm" style="display:none;">';
-        echo '      <span class="cd-delete-confirm__text">¿Segura?</span>';
-        echo '      <a href="' . esc_url($trash_url) . '" class="cd-delete-confirm__yes">Sí, eliminar</a>';
-        echo '      <a href="#" class="cd-delete-confirm__no" id="cd-delete-cancel">Cancelar</a>';
-        echo '    </span>';
-        echo '  </span>';
-    }
-    
-    // Extensibility hook: after the editor form, before actions.
+    // Extensibility hook: after the editor form.
     do_action( 'cfd_editor_after_form', $post, $cpt_slug );
 
-    echo '  </div>'; // End cd-editor__actions
     echo '</div>'; // End cd-editor
-    
-    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
+
+    cfd_render_delete_modal();
 
     echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 }
@@ -1377,8 +1411,6 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
     ));
 
     echo '</div>'; // End cd-editor
-    
-    cfd_render_concierge_tip( 'Consejo', 'Los cambios se guardan y publican de inmediato. Asegúrate de revisarlos en la página online.' );
 
     echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
 }

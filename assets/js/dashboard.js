@@ -76,40 +76,153 @@ document.addEventListener('click', function (e) {
     waitForAcf();
 })();
 
+/* ── Delete confirmation modal ─────────────────────────
+   Triggers when any [data-cfd-delete] element is clicked.
+   The modal markup lives once in the listing template
+   (cfd-delete-modal). Falls back to native confirm() on
+   the editor page where the modal isn't present. */
+(function () {
+    var modal = null;
+    var modalTarget = null;
+    var modalConfirm = null;
+    var lastFocus = null;
+    var pendingUrl = null;
+
+    function init() {
+        modal = document.getElementById('cfd-delete-modal');
+        if (!modal) return;
+        modalTarget = modal.querySelector('[data-cfd-modal-target]');
+        modalConfirm = modal.querySelector('[data-cfd-modal-confirm]');
+
+        // Close on backdrop / cancel.
+        modal.querySelectorAll('[data-cfd-modal-close]').forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                close();
+            });
+        });
+
+        // Confirm proceeds to the trash URL.
+        if (modalConfirm) {
+            modalConfirm.addEventListener('click', function (e) {
+                if (!pendingUrl) {
+                    e.preventDefault();
+                    return;
+                }
+                // Let the anchor navigate naturally; close cosmetically.
+                modalConfirm.classList.add('is-loading');
+            });
+        }
+
+        // ESC key.
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !modal.hasAttribute('hidden')) {
+                close();
+            }
+        });
+    }
+
+    function open(title, trashUrl) {
+        if (!modal) {
+            // Fallback: no modal on this page (e.g. editor without listing).
+            if (window.confirm('¿Eliminar "' + title + '"? Podrás recuperarla desde la papelera durante 30 días.')) {
+                window.location.href = trashUrl;
+            }
+            return;
+        }
+        if (modalTarget) modalTarget.textContent = title;
+        if (modalConfirm) modalConfirm.setAttribute('href', trashUrl);
+        pendingUrl = trashUrl;
+        lastFocus = document.activeElement;
+        modal.removeAttribute('hidden');
+        // Focus Cancelar by default (safer).
+        var cancelBtn = modal.querySelector('.cfd-confirm-modal__btn--cancel');
+        if (cancelBtn) cancelBtn.focus();
+        document.body.classList.add('cfd-modal-open');
+    }
+
+    function close() {
+        if (!modal) return;
+        modal.setAttribute('hidden', '');
+        document.body.classList.remove('cfd-modal-open');
+        if (modalConfirm) modalConfirm.classList.remove('is-loading');
+        pendingUrl = null;
+        if (lastFocus && typeof lastFocus.focus === 'function') {
+            lastFocus.focus();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Delegated trigger.
+    document.addEventListener('click', function (e) {
+        var trigger = e.target.closest('[data-cfd-delete]');
+        if (!trigger) return;
+        e.preventDefault();
+        var title = trigger.getAttribute('data-title') || 'esta entrada';
+        var url = trigger.getAttribute('data-trash-url');
+        if (!url) return;
+        open(title, url);
+    });
+})();
+
 /* ── Duplicate confirmation ─────────────────────────────
-   Intercepts clicks on .cd-duplicate-btn and shows a
-   native confirm() dialog before proceeding. */
+   Lightweight confirm() — duplication is non-destructive,
+   no need for the heavy modal treatment. */
 document.addEventListener('click', function (e) {
     var btn = e.target.closest('.cd-duplicate-btn');
-    if (btn) {
-        e.preventDefault();
-        if (confirm('¿Crear una copia de este contenido?')) {
-            window.location.href = btn.href;
-        }
+    if (!btn || !btn.href) return;
+    e.preventDefault();
+    if (window.confirm('¿Crear una copia de este contenido?')) {
+        window.location.href = btn.href;
     }
 });
 
-/* ── Delete confirmation toggle ────────────────────────
-   Shows inline "¿Segura? Sí / Cancelar" when clicking
-   "Eliminar". No browser confirm() dialogs. */
+/* ── Editor header overflow menu (mobile) ──────────────
+   On mobile, Duplicar/Eliminar collapse into a ⋯ button.
+   This toggles the menu open/closed and closes on outside
+   click or Escape. Desktop keeps the buttons visible
+   inline (CSS-driven). */
 (function () {
-    var trigger = document.getElementById('cd-delete-trigger');
-    var confirm = document.getElementById('cd-delete-confirm');
-    var cancel = document.getElementById('cd-delete-cancel');
+    document.addEventListener('click', function (e) {
+        var toggle = e.target.closest('[data-cfd-overflow-toggle]');
+        var openMenus = document.querySelectorAll('[data-cfd-header-actions].is-open');
 
-    if (trigger && confirm && cancel) {
-        trigger.addEventListener('click', function (e) {
+        if (toggle) {
             e.preventDefault();
-            trigger.style.display = 'none';
-            confirm.style.display = 'inline-flex';
-        });
+            var wrap = toggle.closest('[data-cfd-header-actions]');
+            if (!wrap) return;
+            var isOpen = wrap.classList.toggle('is-open');
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            // Close any other open menus.
+            openMenus.forEach(function (m) {
+                if (m !== wrap) m.classList.remove('is-open');
+            });
+            return;
+        }
 
-        cancel.addEventListener('click', function (e) {
-            e.preventDefault();
-            confirm.style.display = 'none';
-            trigger.style.display = 'inline';
+        // Click outside any open menu — close it.
+        openMenus.forEach(function (wrap) {
+            if (!wrap.contains(e.target)) {
+                wrap.classList.remove('is-open');
+                var t = wrap.querySelector('[data-cfd-overflow-toggle]');
+                if (t) t.setAttribute('aria-expanded', 'false');
+            }
         });
-    }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('[data-cfd-header-actions].is-open').forEach(function (wrap) {
+            wrap.classList.remove('is-open');
+            var t = wrap.querySelector('[data-cfd-overflow-toggle]');
+            if (t) t.setAttribute('aria-expanded', 'false');
+        });
+    });
 })();
 
 /* ── Success modal ─────────────────────────────────────
