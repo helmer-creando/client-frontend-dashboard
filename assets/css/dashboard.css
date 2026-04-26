@@ -1099,22 +1099,107 @@
     transition: all 0.2s !important;
 }
 
-/* ── True/False (toggle) field ── */
+/* ── True/False (toggle) field — dashboard pill aesthetic ── */
 .cd-acf-form .acf-true-false {
     display: flex !important;
     align-items: center !important;
+    gap: var(--space-s, 0.75rem) !important;
 }
 
 .cd-acf-form .acf-switch {
-    border-radius: 99px !important;
+    position: relative !important;
+    width: 64px !important;
+    height: 36px !important;
+    border-radius: 100px !important;
     overflow: hidden !important;
-    border-color: rgba(0, 0, 0, 0.1) !important;
-    transition: background 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    background-color: var(--kh-surface-container-highest, #E4E0D6) !important;
+    border: 1px solid var(--kh-outline-variant, #CAC4BB) !important;
+    transition:
+        background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    cursor: pointer !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 .cd-acf-form .acf-switch.-on {
-    background: var(--primary, #6B5540) !important;
+    background-color: var(--primary-dark, #5A4535) !important;
+    border-color: var(--primary-dark, #5A4535) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Sí / No text inside the switch — subtle, smaller. */
+.cd-acf-form .acf-switch .acf-switch-on,
+.cd-acf-form .acf-switch .acf-switch-off {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 50% !important;
+    height: 100% !important;
+    font-size: var(--text-xs, 0.75rem) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    transition: color 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+}
+
+.cd-acf-form .acf-switch .acf-switch-on {
+    color: var(--primary-ultra-light, #FAF7F2) !important;
+}
+
+.cd-acf-form .acf-switch.-off .acf-switch-on {
+    color: transparent !important;
+}
+
+.cd-acf-form .acf-switch .acf-switch-off {
+    color: var(--kh-on-surface-variant, #5F5953) !important;
+}
+
+.cd-acf-form .acf-switch.-on .acf-switch-off {
+    color: transparent !important;
+}
+
+/* The slider — circle that travels left↔right with a spring curve. */
+.cd-acf-form .acf-switch .acf-switch-slider {
+    position: absolute !important;
+    top: 3px !important;
+    left: 3px !important;
+    width: 28px !important;
+    height: 28px !important;
+    background-color: var(--white, #fff) !important;
+    border-radius: 50% !important;
+    border: none !important;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.18),
+        0 1px 2px rgba(0, 0, 0, 0.12) !important;
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    pointer-events: none !important;
+}
+
+.cd-acf-form .acf-switch.-on .acf-switch-slider {
+    transform: translateX(28px) !important;
+}
+
+.cd-acf-form .acf-switch:hover {
+    border-color: var(--kh-outline, #7F766C) !important;
+}
+
+.cd-acf-form .acf-switch.-on:hover {
+    background-color: var(--primary, #6B5540) !important;
     border-color: var(--primary, #6B5540) !important;
+}
+
+.cd-acf-form .acf-switch:focus-within {
+    outline: 3px solid var(--accent, #A69279) !important;
+    outline-offset: 2px !important;
+}
+
+/* The "message" text ACF renders next to the switch. */
+.cd-acf-form .acf-true-false .message {
+    color: var(--kh-on-surface-variant, #5F5953) !important;
+    font-size: var(--text-s, 0.875rem) !important;
+    font-weight: 500 !important;
 }
 
 /* ── Repeater field ── */
@@ -2597,37 +2682,59 @@
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
+    flex-wrap: wrap !important;
     margin-bottom: var(--space-l, 2rem) !important;
     gap: 1.5rem !important;
     border-bottom: 1px solid var(--kh-surface-container-highest, #E4E0D6);
     padding-bottom: var(--space-m, 1.5rem);
 }
 
+/* View-hint inside the page-editor header (row layout) wraps to a full
+   row of its own, sitting between title-row and the divider. */
+.kh-editor__header > .cd-view-hint {
+    flex-basis: 100%;
+    margin: var(--space-xs, 0.5rem) 0 0 0 !important;
+    text-align: left;
+}
+
+/* "Ver online" pill — matches .kh-editor__action geometry but uses
+   --primary-ultra-light/--primary-ultra-dark per design choice. */
 .kh-editor__preview {
-    font-size: var(--text-s, 0.875rem) !important;
-    text-decoration: none !important;
-    color: var(--kh-on-surface, #242424) !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 0.5rem !important;
-    padding: 0.6rem 1.25rem !important;
-    border-radius: var(--radius-m, 20px) !important;
-    background: var(--kh-surface-container, #F5F3F1) !important;
-    border: 1px solid var(--kh-surface-container-highest, #E4E0D6) !important;
-    transition: all 0.2s ease !important;
+    gap: 6px !important;
+    height: 44px !important;
+    padding: 0 1rem !important;
+    border-radius: 100px !important;
+    background-color: var(--primary-ultra-light, #FAF7F2) !important;
+    color: var(--primary-ultra-dark, #2C2218) !important;
+    border: 1px solid var(--primary-light, #C9B79F) !important;
+    text-decoration: none !important;
+    font-size: var(--text-m, 1rem) !important;
+    font-weight: 500 !important;
     white-space: nowrap !important;
-    font-weight: 600 !important;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease !important;
+}
+
+.kh-editor__preview .material-symbols-outlined {
+    font-size: 20px;
 }
 
 .kh-editor__preview:hover {
-    background: var(--kh-surface-container-high, #EBE9E1) !important;
+    background-color: var(--primary-light, #C9B79F) !important;
+    border-color: var(--primary-dark, #5A4535) !important;
+    color: var(--primary-ultra-dark, #2C2218) !important;
     transform: translateY(-1px) !important;
-    box-shadow: var(--kh-elevation-1) !important;
+}
+
+.kh-editor__preview:focus-visible {
+    outline: 3px solid var(--accent, #A69279) !important;
+    outline-offset: 2px !important;
 }
 
 /* ── ACF Field Typography Overrides ───────────────────── */
 .cd-acf-form .acf-label label {
-    font-size: var(--text-l, 1.15rem) !important;
+    font-size: calc(var(--text-m, 1rem) * 1.2) !important;
     font-weight: 700 !important;
     color: var(--kh-primary, #443B33) !important;
     margin-bottom: 0.5rem !important;
@@ -3657,16 +3764,24 @@
 }
 
 /* ── Editor header actions zone ────────────────────────── */
-/* Override the base .kh-editor__header (which uses align-items:center
-   with !important) — we need flex-start so a wrapped preview link doesn't
-   re-center weirdly, plus row layout for the header-main contents. */
+/* Desktop layout (Option A): title + Ver online inline on the left,
+   Duplicar/Eliminar pinned to the right (inside .kh-editor__header-row).
+   View-hint sits below the row, still above the divider (border-bottom
+   of the outer header). */
 .kh-editor__header--with-actions {
     display: flex !important;
-    flex-direction: row !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    flex-wrap: wrap !important;
-    gap: var(--space-m, 1rem) !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-s, 0.85rem) !important;
+}
+
+.kh-editor__header-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m, 1rem);
 }
 
 .kh-editor__header-main {
@@ -3691,6 +3806,13 @@
     flex: 0 0 auto !important;
     width: auto !important;
     align-self: center !important;
+}
+
+/* View-hint inside the header — appears between the title row and the
+   border-bottom divider. */
+.kh-editor__header .cd-view-hint {
+    margin: 0 !important;
+    text-align: left;
 }
 
 .kh-editor__header-actions {
@@ -3994,14 +4116,44 @@ body.cfd-modal-open {
 
 /* ── Editor header actions — mobile overflow menu ──────── */
 @media (max-width: 768px) {
+    /* Title-row on mobile: centered title with the ⋯ overflow toggle
+       below it (stacked column). The Ver online pill wraps under the
+       title naturally. */
     .kh-editor__header--with-actions {
-        flex-direction: row;
-        align-items: flex-start;
-        flex-wrap: nowrap;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: var(--space-s, 0.85rem) !important;
+    }
+
+    .kh-editor__header-row {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--space-s, 0.85rem);
+        width: 100%;
+    }
+
+    .kh-editor__header-main {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .kh-editor__header-main .kh-editor__title {
+        text-align: center !important;
     }
 
     .kh-editor__header-actions {
-        order: 0;
+        order: 1;
+        align-self: center;
+    }
+
+    /* View-hint also centers on mobile so the whole header is balanced. */
+    .kh-editor__header .cd-view-hint,
+    .kh-editor__header > .cd-view-hint {
+        text-align: center !important;
     }
 
     .kh-editor__overflow-toggle {

@@ -941,7 +941,9 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header kh-editor__header">';
     echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver página online</a>';
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver online</a>';
+    // View-hint sits inside the header so it appears above the divider line.
+    cfd_maybe_render_view_hint( 'edit_page' );
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
@@ -951,8 +953,6 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         echo '</div>';
     }
 
-    cfd_maybe_render_view_hint( 'edit_page' );
-
     echo '<div class="cd-editor-form kh-editor__grid">';
 
     acf_form(array(
@@ -960,10 +960,10 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         'post_title' => false,
         'post_content' => false,
         'field_groups' => $field_groups,
-        'submit_value' => 'Guardar mis cambios',
+        'submit_value' => 'Guardar cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
@@ -1305,9 +1305,10 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
 
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header kh-editor__header kh-editor__header--with-actions">';
+    echo '<div class="kh-editor__header-row">';
     echo '  <div class="kh-editor__header-main">';
     echo '    <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver entrada online</a>';
+    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver online</a>';
     echo '  </div>';
 
     // ── Header action zone: Duplicar + Eliminar ──
@@ -1327,6 +1328,9 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     }
     echo '    </div>';
     echo '  </div>';
+    echo '</div>'; // end kh-editor__header-row
+    // View-hint sits inside the header so it appears above the divider line.
+    cfd_maybe_render_view_hint( 'edit_cpt' );
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
@@ -1342,8 +1346,6 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         echo '</div>';
     }
 
-    cfd_maybe_render_view_hint( 'edit_cpt' );
-
     // Extensibility hook: before the editor form (e.g., translation links).
     do_action( 'cfd_editor_before_form', $post, $cpt_slug );
 
@@ -1353,10 +1355,10 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         'post_title' => true,
         'post_content' => false,
         'field_groups' => $field_groups,
-        'submit_value' => 'Guardar mis cambios',
+        'submit_value' => 'Guardar cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar mis cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
