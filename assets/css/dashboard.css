@@ -3181,7 +3181,7 @@
 
 .kh-tip-card__text,
 .kh-help-banner__text {
-    font-size: var(--text-m, 1rem);
+    font-size: var(--text-xs, 0.72rem);
     color: var(--kh-on-surface-variant, #5F5953);
     margin: 0;
     line-height: 1.5;
@@ -4040,7 +4040,7 @@
     flex-wrap: wrap;
     gap: 0.3rem;
     margin-top: 0.35rem;
-    margin-bottom: 0.1rem;
+    margin-bottom: calc(var(--text-xs, 0.72rem) * 0.75);
 }
 
 /* Hidden chips when row is collapsed by JS.
@@ -4059,7 +4059,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    padding: 0.18rem 0.55rem;
+    padding: 0.2em 0.6em;
     background-color: var(--primary-ultra-light, #FAF7F2);
     color: var(--primary-ultra-dark, #2C2218);
     border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 20%, transparent);
@@ -4094,8 +4094,9 @@
 
 /* ── Icon inside chip ────────────────────────────────────── */
 .cfd-chip__icon {
-    font-size: 12px !important;
+    font-size: inherit;
     line-height: 1;
+    vertical-align: middle;
 }
 
 /* ── "+N más" overflow button ────────────────────────────── */

@@ -1313,8 +1313,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     echo '  </div>';
     echo '  <div class="kh-help-banner__content">';
     echo '    <h3 class="kh-help-banner__title">¿Necesitas ayuda?</h3>';
-    echo '    <p class="kh-help-banner__text">Si no encuentras lo que buscas o tienes problemas para editar tu contenido, tu equipo de diseño está a un clic de distancia.</p>';
-    echo '    <a href="mailto:soporte@autentiweb.com" class="kh-help-banner__btn"><span class="material-symbols-outlined">mail</span> Contactar soporte</a>';
+    echo '    <p class="kh-help-banner__text">Si estas teniendo problemas para editar tu contenido, <a href="mailto:soporte@autentiweb.com" style="color:var(--primary-dark,#5A4535);text-decoration:underline;">contáctanos</a></p>';
     echo '  </div>';
     echo '</div>';
 
