@@ -4027,6 +4027,169 @@
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   v3.7 — CPT Chips: context chips, status chips, quick toggles
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Chip row ────────────────────────────────────────────── */
+/* Sits inside .kh-content-item__info (z-index 2), above the
+   stretched card link (z-index 1). Chips are display-only labels;
+   the +N más overflow button is interactive (z-index 3). */
+.cfd-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+    margin-bottom: 0.1rem;
+}
+
+/* Hidden chips when row is collapsed by JS.
+   JS adds [data-overflow] to chips beyond row 1, then adds
+   .cfd-chip-row--collapsed to the container. */
+.cfd-chip-row--collapsed .cfd-chip[data-overflow] {
+    display: none;
+}
+
+/* ── Base chip ───────────────────────────────────────────── */
+/* Context chips use --primary palette.
+   --primary-ultra-light is always near-white regardless of
+   palette remapping, paired with --primary-ultra-dark (near-black).
+   This guarantees contrast across any client palette. */
+.cfd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.18rem 0.55rem;
+    background-color: var(--primary-ultra-light, #FAF7F2);
+    color: var(--primary-ultra-dark, #2C2218);
+    border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 20%, transparent);
+    border-radius: 100px;
+    font-size: var(--text-xs, 0.72rem);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ── Status chip ─────────────────────────────────────────── */
+/* Uses --accent palette.
+   --accent-ultra-light + --accent-ultra-dark keeps contrast
+   stable whether accent is a light or dark hue. */
+.cfd-chip--status {
+    background-color: var(--accent-ultra-light, #FFF9F0);
+    color: var(--accent-ultra-dark, #3D2800);
+    border-color: color-mix(in srgb, var(--accent, #A69279) 28%, transparent);
+}
+
+/* ── Empty / sin categoría chip ─────────────────────────── */
+/* Visually muted — nudges the editor to assign a category. */
+.cfd-chip--empty {
+    background-color: transparent;
+    color: var(--kh-on-surface-variant, #8A817A);
+    border-color: rgba(0, 0, 0, 0.12);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* ── Icon inside chip ────────────────────────────────────── */
+.cfd-chip__icon {
+    font-size: 12px !important;
+    line-height: 1;
+}
+
+/* ── "+N más" overflow button ────────────────────────────── */
+/* Sits above the stretched card link via z-index. */
+.cfd-chip-more {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.55rem;
+    background-color: transparent;
+    color: var(--primary, #8B7355);
+    border: 1px solid color-mix(in srgb, var(--primary, #8B7355) 28%, transparent);
+    border-radius: 100px;
+    font-size: var(--text-xs, 0.72rem);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+    position: relative;
+    z-index: 3;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.cfd-chip-more:hover {
+    background-color: color-mix(in srgb, var(--primary, #8B7355) 8%, transparent);
+    border-color: color-mix(in srgb, var(--primary, #8B7355) 40%, transparent);
+}
+
+/* ── Quick-toggle button ─────────────────────────────────── */
+/* Sits in .kh-content-item__actions — inherits z-index 3 from
+   the actions rule so it's above the stretched card link. */
+.cfd-quick-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 100px;
+    cursor: pointer;
+    color: var(--kh-on-surface-variant, #8A817A);
+    font-family: inherit;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease;
+}
+
+.cfd-quick-toggle:hover {
+    background-color: color-mix(in srgb, var(--accent, #A69279) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #A69279) 40%, transparent);
+    /* Use ultra-dark so it's readable whether accent is light or dark. */
+    color: var(--accent-ultra-dark, #3D2800);
+}
+
+/* Active state — field is true. Uses filled icon (kh-icon--filled on span). */
+.cfd-quick-toggle--active {
+    background-color: color-mix(in srgb, var(--accent, #A69279) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #A69279) 45%, transparent);
+    color: var(--accent-ultra-dark, #3D2800);
+}
+
+.cfd-quick-toggle--active:hover {
+    background-color: color-mix(in srgb, var(--accent, #A69279) 25%, transparent);
+}
+
+/* Disable interaction during AJAX call. */
+.cfd-quick-toggle--loading {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: wait;
+}
+
+.cfd-quick-toggle .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ── Mobile chip adjustments ─────────────────────────────── */
+/* On S breakpoint chips are already compact; ensure the
+   chip row doesn't push the card actions off-screen. */
+@media (max-width: 480px) {
+    .cfd-chip {
+        font-size: var(--text-xs, 0.68rem);
+        padding: 0.15rem 0.45rem;
+    }
+
+    .cfd-chip-more {
+        font-size: var(--text-xs, 0.68rem);
+        padding: 0.15rem 0.45rem;
+    }
+}
+
 .cfd-confirm-modal__title {
     font-size: var(--text-l, 1.4rem) !important;
     font-weight: 700 !important;

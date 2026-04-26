@@ -255,6 +255,11 @@ function cfd_enqueue_dashboard_assets(): void
         CFD_VERSION,
         true // Load in footer.
     );
+
+    // Pass AJAX URL to dashboard JS for quick-toggle requests.
+    wp_localize_script( 'cfd-dashboard', 'cfdData', array(
+        'ajaxurl' => admin_url( 'admin-ajax.php' ),
+    ) );
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1038,6 +1043,12 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     // The form GETs to the same page, preserving ?manage=slug.
     $toolbar_action = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
 
+    // ── Chip config for this CPT (null when none registered) ───
+    $chip_config        = cfd_get_cpt_chip_config( $cpt_slug );
+    $active_facet_params = ( $chip_config && ! empty( $chip_config['filter_facets'] ) )
+        ? cfd_get_active_facet_params( $chip_config['filter_facets'] )
+        : array();
+
     // ── Filter accordion wrapper (collapsed on tablet/mobile) ──
     echo '<details class="cd-cpt-filter-toggle" open>';
     echo '  <summary class="cd-cpt-filter-toggle__summary">';
@@ -1068,20 +1079,31 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     echo '    <input type="text" name="buscar" id="cd-buscar" class="cd-cpt-toolbar__search" value="' . esc_attr($search) . '" placeholder="Buscar...">';
     echo '  </div>';
 
+    // ── Taxonomy filter facets (registered via cfd_register_cpt_chips) ──
+    if ( $chip_config && ! empty( $chip_config['filter_facets'] ) ) {
+        cfd_render_filter_facets( $cpt_slug, $chip_config['filter_facets'] );
+    }
+
     echo '  <button type="submit" class="cd-cpt-toolbar__submit">Filtrar</button>';
     echo '</form>';
     echo '</details>';
 
     // ── Active search indicator (with clear link) ───────────
     if ($search !== '') {
-        $clear_url = add_query_arg(
-            array('manage' => $cpt_slug, 'orderby' => $raw_sort),
-            $dashboard_url
+        $clear_args = array_merge(
+            array( 'manage' => $cpt_slug, 'orderby' => $raw_sort ),
+            $active_facet_params
         );
+        $clear_url = add_query_arg( $clear_args, $dashboard_url );
         echo '<p class="cd-cpt-search-status">';
         echo '  Resultados para "<strong>' . esc_html($search) . '</strong>"';
         echo '  <a href="' . esc_url($clear_url) . '" class="cd-cpt-search-clear">✕ Limpiar</a>';
         echo '</p>';
+    }
+
+    // ── Active facet filter summary ──────────────────────────
+    if ( $chip_config && ! empty( $chip_config['filter_facets'] ) ) {
+        cfd_render_active_filter_summary( $cpt_slug, $chip_config['filter_facets'], $dashboard_url );
     }
 
     // ── Query posts with WP_Query for pagination support ────
@@ -1098,6 +1120,14 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     if ($search !== '') {
         $query_args['s'] = $search;
+    }
+
+    // ── Taxonomy filter from chip facets ─────────────────────
+    if ( $chip_config && ! empty( $chip_config['filter_facets'] ) ) {
+        $tax_q = cfd_build_tax_query( $chip_config['filter_facets'] );
+        if ( ! empty( $tax_q ) ) {
+            $query_args['tax_query'] = $tax_q;
+        }
     }
 
     // Extensibility hook: allow addons to modify CPT query args (e.g., language filtering).
@@ -1161,6 +1191,22 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
             $is_draft = ($p->post_status === 'draft');
 
+            // ── Resolve chips for this card ──────────────────
+            $card_context_chips   = array();
+            $card_status_chips    = array();
+            $card_quick_toggle_html = '';
+            if ( $chip_config ) {
+                if ( ! empty( $chip_config['context_chips'] ) ) {
+                    $card_context_chips = cfd_resolve_chips( $chip_config['context_chips'], $p );
+                }
+                if ( ! empty( $chip_config['status_chips'] ) ) {
+                    $card_status_chips = cfd_resolve_chips( $chip_config['status_chips'], $p );
+                }
+                if ( ! empty( $chip_config['quick_toggles'] ) ) {
+                    $card_quick_toggle_html = cfd_render_quick_toggles( $chip_config['quick_toggles'], $p );
+                }
+            }
+
             echo '<div class="cd-cpt-card kh-content-item' . ($is_draft ? ' kh-content-item--draft' : '') . '">';
 
             // Stretched link: makes the entire card clickable while still
@@ -1174,6 +1220,18 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 echo '      <span class="kh-content-item__status">En proceso (oculto)</span>';
             }
             echo '    </div>';
+            // ── Chip row (context + status chips) ───────────────
+            if ( ! empty( $card_context_chips ) || ! empty( $card_status_chips ) ) {
+                echo '    <div class="cfd-chip-row">';
+                foreach ( $card_context_chips as $chip ) {
+                    echo cfd_render_chip_html( $chip );
+                }
+                foreach ( $card_status_chips as $chip ) {
+                    echo cfd_render_chip_html( $chip );
+                }
+                echo '    </div>';
+            }
+
             echo '    <p class="kh-content-item__meta">Editado hace ' . esc_html($time_ago) . '</p>';
             if ( ! empty( $card_badges ) ) {
                 echo '    <div class="cd-cpt-card__badges">' . implode( ' ', array_map( 'wp_kses_post', $card_badges ) ) . '</div>';
@@ -1181,6 +1239,10 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             echo '  </div>';
 
             echo '  <div class="kh-content-item__actions">';
+            // Quick-toggle star button (before edit, above stretched link via z-index).
+            if ( $card_quick_toggle_html ) {
+                echo $card_quick_toggle_html;
+            }
             echo '    <a href="' . esc_url($edit_url) . '" class="cd-cpt-card__edit kh-content-item__edit">';
             echo '      <span class="material-symbols-outlined">edit</span> Editar';
             echo '    </a>';
@@ -1198,13 +1260,17 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
         // ── Pagination ──
         if ($total_pages > 1) {
-            // Build base URL preserving all current filters.
+            // Build base URL preserving all current filters (sort, search, facets).
             $base_args = array('manage' => $cpt_slug);
             if ($orderby !== 'title') {
                 $base_args['orderby'] = $orderby;
             }
             if ($search !== '') {
                 $base_args['buscar'] = $search;
+            }
+            // Preserve active facet filter params across pagination.
+            if ( ! empty( $active_facet_params ) ) {
+                $base_args = array_merge( $base_args, $active_facet_params );
             }
 
             echo '<nav class="cd-cpt-pagination kh-pagination" aria-label="Paginación">';

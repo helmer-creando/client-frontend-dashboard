@@ -468,6 +468,148 @@ document.addEventListener('click', function (e) {
     });
 })();
 
+/* ── Quick-toggle: flip ACF boolean field via AJAX ─────
+   Handles clicks on .cfd-quick-toggle buttons rendered inside
+   CPT listing cards. Updates the button's visual state
+   immediately on success without a page reload.               */
+(function () {
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.cfd-quick-toggle');
+        if (!btn) return;
+
+        // Prevent the stretched card link from firing.
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (btn.classList.contains('cfd-quick-toggle--loading')) return;
+
+        var postId = btn.getAttribute('data-post-id');
+        var field  = btn.getAttribute('data-field');
+        var nonce  = btn.getAttribute('data-nonce');
+
+        if (!postId || !field || !nonce) return;
+
+        btn.classList.add('cfd-quick-toggle--loading');
+
+        var body = new FormData();
+        body.append('action',  'cfd_toggle_field');
+        body.append('post_id', postId);
+        body.append('field',   field);
+        body.append('nonce',   nonce);
+
+        var ajaxUrl = (window.cfdData && window.cfdData.ajaxurl)
+            ? window.cfdData.ajaxurl
+            : '/wp-admin/admin-ajax.php';
+
+        fetch(ajaxUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: body,
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            btn.classList.remove('cfd-quick-toggle--loading');
+            if (!data.success) return;
+
+            var newValue = data.data && data.data.value;
+
+            // Toggle active class and filled-icon class on the icon span.
+            btn.classList.toggle('cfd-quick-toggle--active', newValue);
+            btn.setAttribute('data-active', newValue ? '1' : '0');
+            btn.setAttribute('aria-pressed', newValue ? 'true' : 'false');
+
+            var icon = btn.querySelector('.material-symbols-outlined');
+            if (icon) {
+                if (newValue) {
+                    icon.classList.add('kh-icon--filled');
+                } else {
+                    icon.classList.remove('kh-icon--filled');
+                }
+            }
+
+            // Update aria-label to reflect new state.
+            var baseLabel = btn.getAttribute('aria-label') || '';
+            var suffix    = newValue ? 'Activado' : 'Desactivado';
+            // Replace trailing "Activado"/"Desactivado" to avoid duplication.
+            baseLabel = baseLabel.replace(/:\s*(Activado|Desactivado)$/, '');
+            btn.setAttribute('aria-label', baseLabel + ': ' + suffix);
+        })
+        .catch(function () {
+            btn.classList.remove('cfd-quick-toggle--loading');
+        });
+    });
+})();
+
+/* ── Chip row overflow collapse ────────────────────────
+   After layout, detects chips that wrap onto a second row
+   and collapses them behind a "+N más" button.
+   On mobile (≤480px) we skip — the narrower cards mean
+   even two chips wrap, and the collapse/expand adds friction
+   for grandma. Let them wrap naturally on small screens.       */
+(function () {
+    function initChipOverflow() {
+        // Skip collapse on narrow screens — let chips wrap freely.
+        if (window.innerWidth <= 480) return;
+
+        var rows = document.querySelectorAll('.cfd-chip-row');
+        rows.forEach(function (row) {
+            if (row.dataset.cfdChipsInit) return;
+            row.dataset.cfdChipsInit = '1';
+
+            var chips = Array.from(row.querySelectorAll('.cfd-chip'));
+            if (chips.length < 2) return;
+
+            // All chips are visible at this point — measure their tops.
+            var firstTop = chips[0].getBoundingClientRect().top;
+            var overflow = [];
+
+            chips.forEach(function (chip) {
+                // 4px tolerance for sub-pixel rounding across browsers.
+                if (Math.round(chip.getBoundingClientRect().top) > Math.round(firstTop) + 4) {
+                    overflow.push(chip);
+                }
+            });
+
+            if (overflow.length === 0) return;
+
+            // Mark overflow chips so CSS can hide them.
+            overflow.forEach(function (chip) {
+                chip.setAttribute('data-overflow', 'true');
+            });
+
+            row.classList.add('cfd-chip-row--collapsed');
+
+            // Inject "+N más" expand button.
+            var moreBtn = document.createElement('button');
+            moreBtn.type      = 'button';
+            moreBtn.className = 'cfd-chip-more';
+            moreBtn.textContent = '+' + overflow.length + ' más';
+
+            moreBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                row.classList.remove('cfd-chip-row--collapsed');
+                moreBtn.remove();
+            });
+
+            row.appendChild(moreBtn);
+        });
+    }
+
+    // Run after layout is fully painted.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            requestAnimationFrame(function () {
+                setTimeout(initChipOverflow, 80);
+            });
+        });
+    } else {
+        requestAnimationFrame(function () {
+            setTimeout(initChipOverflow, 80);
+        });
+    }
+})();
+
 /* ── Form submit loading state ─────────────────────────
    Adds spinner + "Guardando..." text to submit button
    when ACF form is submitted. Prevents double-clicks.       */
