@@ -1100,6 +1100,9 @@
 }
 
 /* ── True/False (toggle) field — dashboard pill aesthetic ── */
+/* Variable-width track that grows with the longer of the two on/off
+   labels. Slider position uses calc() against percentages so it always
+   centers in the active half regardless of track width. */
 .cd-acf-form .acf-true-false {
     display: flex !important;
     align-items: center !important;
@@ -1108,10 +1111,12 @@
 
 .cd-acf-form .acf-switch {
     position: relative !important;
-    width: 64px !important;
+    display: inline-grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    align-items: center !important;
+    min-width: 80px !important;
     height: 36px !important;
     border-radius: 100px !important;
-    overflow: hidden !important;
     background-color: var(--kh-surface-container-highest, #E4E0D6) !important;
     border: 1px solid var(--kh-outline-variant, #CAC4BB) !important;
     transition:
@@ -1119,6 +1124,8 @@
         border-color 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
     cursor: pointer !important;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    /* Keep slider visible if it overflows during transition. */
+    overflow: visible !important;
 }
 
 .cd-acf-form .acf-switch.-on {
@@ -1127,21 +1134,24 @@
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Sí / No text inside the switch — subtle, smaller. */
+/* Each label takes one grid cell — together they grow the track to fit
+   the longer text. Generous padding so labels never crowd the slider. */
 .cd-acf-form .acf-switch .acf-switch-on,
 .cd-acf-form .acf-switch .acf-switch-off {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 50% !important;
     height: 100% !important;
+    padding: 0 0.85rem !important;
     font-size: var(--text-xs, 0.75rem) !important;
     font-weight: 700 !important;
     letter-spacing: 0.04em !important;
     text-transform: uppercase !important;
-    transition: color 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
-    padding: 0 !important;
+    white-space: nowrap !important;
     line-height: 1 !important;
+    transition: color 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
 .cd-acf-form .acf-switch .acf-switch-on {
@@ -1160,25 +1170,31 @@
     color: transparent !important;
 }
 
-/* The slider — circle that travels left↔right with a spring curve. */
+/* The slider — 28px circle. Position uses calc(% - half-width) so it
+   centers in the active half regardless of track width. The position
+   transitions on `left` (animatable in modern browsers).
+   Default (off) → centered in left half (25%).
+   On → centered in right half (75%). */
 .cd-acf-form .acf-switch .acf-switch-slider {
     position: absolute !important;
-    top: 3px !important;
-    left: 3px !important;
+    top: 50% !important;
+    left: calc(25% - 14px) !important;
     width: 28px !important;
     height: 28px !important;
+    margin-top: -14px !important;
     background-color: var(--white, #fff) !important;
     border-radius: 50% !important;
     border: none !important;
     box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.18),
         0 1px 2px rgba(0, 0, 0, 0.12) !important;
-    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+    transition: left 280ms cubic-bezier(0.22, 1, 0.36, 1) !important;
     pointer-events: none !important;
+    z-index: 2 !important;
 }
 
 .cd-acf-form .acf-switch.-on .acf-switch-slider {
-    transform: translateX(28px) !important;
+    left: calc(75% - 14px) !important;
 }
 
 .cd-acf-form .acf-switch:hover {
@@ -1739,19 +1755,52 @@
 }
 
 .cd-acf-form .acf-gallery .acf-gallery-add {
-    border: 2px dashed rgba(0, 0, 0, 0.08) !important;
-    border-radius: var(--radius-s, 8px) !important;
-    min-height: 60px !important;
-    display: flex !important;
+    border: 1px solid var(--primary-light, #C9B79F) !important;
+    border-radius: 100px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    margin: var(--space-xs, 0.5rem) !important;
-    transition: all 0.2s !important;
+    margin: var(--space-xs, 0.5rem) 0 !important;
+    padding: 0 var(--space-m, 1.5rem) !important;
+    background: transparent !important;
+    color: var(--primary-dark, #5A4535) !important;
+    font-size: var(--text-m, 1rem) !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        color 180ms ease,
+        transform 180ms ease !important;
 }
 
 .cd-acf-form .acf-gallery .acf-gallery-add:hover {
-    border-color: var(--accent, #A69279) !important;
-    background: color-mix(in srgb, var(--accent, #A69279) 3%, transparent) !important;
+    border-color: var(--primary-dark, #5A4535) !important;
+    background-color: var(--primary-ultra-light, #FAF7F2) !important;
+    color: var(--primary-ultra-dark, #2C2218) !important;
+    transform: translateY(-1px) !important;
+}
+
+.cd-acf-form .acf-gallery .acf-gallery-add:focus-visible {
+    outline: 3px solid var(--accent, #A69279) !important;
+    outline-offset: 2px !important;
+}
+
+/* Same treatment for any nested .button or .acf-button inside the
+   gallery-add slot (ACF version-dependent — covers both shapes). */
+.cd-acf-form .acf-gallery .acf-gallery-add .button,
+.cd-acf-form .acf-gallery .acf-gallery-add .acf-button,
+.cd-acf-form .acf-gallery .acf-gallery-add > a,
+.cd-acf-form .acf-gallery .acf-gallery-add > button {
+    background: transparent !important;
+    color: inherit !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    font: inherit !important;
+    text-decoration: none !important;
 }
 
 .cd-acf-form .acf-gallery .acf-gallery-toolbar {
@@ -2699,6 +2748,14 @@
 
 /* "Ver online" pill — matches .kh-editor__action geometry but uses
    --primary-ultra-light/--primary-ultra-dark per design choice. */
+/* Suppress the .cd-preview-link gradient ::before halo when also styled
+   as a header pill — it leaves a phantom rectangle around the pill. */
+.cd-preview-link.kh-editor__preview::before,
+.kh-editor__preview::before {
+    display: none !important;
+    content: none !important;
+}
+
 .kh-editor__preview {
     display: inline-flex !important;
     align-items: center !important;
@@ -3779,7 +3836,7 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    align-items: center;
+    align-items: flex-start; /* pin actions to the top of a tall title */
     justify-content: space-between;
     gap: var(--space-m, 1rem);
 }
@@ -3792,6 +3849,13 @@
     gap: var(--space-s, 0.85rem) var(--space-m, 1.25rem);
     flex: 1 1 auto;
     min-width: 0;
+}
+
+/* Action zone gets the same vertical padding as the title's cap-height
+   alignment — small top offset keeps the buttons visually next to the
+   title's first line rather than glued to the top edge. */
+.kh-editor__header-row .kh-editor__header-actions {
+    padding-top: 0.4rem;
 }
 
 .kh-editor__header-main .kh-editor__title {
@@ -4116,44 +4180,58 @@ body.cfd-modal-open {
 
 /* ── Editor header actions — mobile overflow menu ──────── */
 @media (max-width: 768px) {
-    /* Title-row on mobile: centered title with the ⋯ overflow toggle
-       below it (stacked column). The Ver online pill wraps under the
-       title naturally. */
+    /* Mobile header layout:
+       Row 1: title (centered, full width)
+       Row 2: [Ver online] [⋯]  centered on one line
+       Row 3: view-hint (centered)
+
+       Trick: display:contents on .kh-editor__header-main flattens its
+       children (title + Ver online) into the header-row flex context.
+       That puts title, Ver online, and Actions all at the same DOM
+       depth — title gets flex-basis:100% to claim its own row, then
+       Ver online + Actions wrap onto row 2 next to each other. */
     .kh-editor__header--with-actions {
         flex-direction: column !important;
-        align-items: center !important;
+        align-items: stretch !important;
         text-align: center !important;
         gap: var(--space-s, 0.85rem) !important;
     }
 
     .kh-editor__header-row {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
         align-items: center;
-        text-align: center;
-        gap: var(--space-s, 0.85rem);
-        width: 100%;
+        gap: var(--space-xs, 0.5rem);
     }
 
     .kh-editor__header-main {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        width: 100%;
+        display: contents;
     }
 
-    .kh-editor__header-main .kh-editor__title {
+    .kh-editor__header-main > .kh-editor__title {
+        flex: 0 0 100%;
         text-align: center !important;
     }
 
+    .kh-editor__header-main > .kh-editor__preview {
+        margin: 0 !important;
+    }
+
+    /* Actions sits inline next to Ver online (right side after wrap). */
     .kh-editor__header-actions {
-        order: 1;
         align-self: center;
     }
 
-    /* View-hint also centers on mobile so the whole header is balanced. */
+    /* View-hint sits below, centered. */
     .kh-editor__header .cd-view-hint,
     .kh-editor__header > .cd-view-hint {
         text-align: center !important;
+    }
+
+    /* Reset desktop top-padding for the actions zone on mobile. */
+    .kh-editor__header-row .kh-editor__header-actions {
+        padding-top: 0;
     }
 
     .kh-editor__overflow-toggle {
