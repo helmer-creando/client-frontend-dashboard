@@ -130,6 +130,22 @@ function cfd_sanitize_settings($input): array
         $clean['quick_links'] = array();
     }
 
+    // Featured toggle fields — one ACF true/false field per CPT.
+    // Stored as [ cpt_slug => acf_field_name ].
+    if ( isset( $input['cfd_featured_fields'] ) && is_array( $input['cfd_featured_fields'] ) ) {
+        $clean_featured = array();
+        foreach ( $input['cfd_featured_fields'] as $cpt => $field ) {
+            $cpt   = sanitize_key( $cpt );
+            $field = sanitize_key( $field );
+            if ( $cpt !== '' && $field !== '' ) {
+                $clean_featured[ $cpt ] = $field;
+            }
+        }
+        $clean['cfd_featured_fields'] = $clean_featured;
+    } else {
+        $clean['cfd_featured_fields'] = array();
+    }
+
     // After saving, re-sync role capabilities so the site_editor
     // role gets caps for the newly selected CPTs.
     // We do this by bumping the caps version.
@@ -504,6 +520,70 @@ function cfd_render_settings_page(): void
                 </table>
             <?php
     endif; ?>
+
+            <!-- ── Featured Toggle Fields ─────────────────────── -->
+            <h2>Featured Toggle (Homepage)</h2>
+            <p>
+                For each content type, choose which ACF <strong>True / False</strong> field
+                controls whether an entry is featured on the homepage. The listing will show
+                a star button on each card — no editor required. Leave blank to disable the
+                toggle for that content type.
+            </p>
+
+            <?php if ( empty( $selected_cpts ) ): ?>
+                <p class="description">No content types are enabled yet. Enable them above first.</p>
+            <?php else: ?>
+                <table class="form-table" role="presentation">
+                <?php
+                $saved_featured = isset( $db_settings['cfd_featured_fields'] ) && is_array( $db_settings['cfd_featured_fields'] )
+                    ? $db_settings['cfd_featured_fields']
+                    : array();
+
+                foreach ( $selected_cpts as $cpt_slug ):
+                    $cpt_obj = get_post_type_object( $cpt_slug );
+                    if ( ! $cpt_obj ) continue;
+
+                    $boolean_fields  = cfd_get_acf_boolean_fields_for_cpt( $cpt_slug );
+                    $current_field   = $saved_featured[ $cpt_slug ] ?? '';
+                    $field_id        = 'cfd_featured_' . $cpt_slug;
+                ?>
+                    <tr>
+                        <th scope="row">
+                            <label for="<?php echo esc_attr( $field_id ); ?>">
+                                <?php echo esc_html( $cpt_obj->labels->name ); ?>
+                            </label>
+                        </th>
+                        <td>
+                            <?php if ( empty( $boolean_fields ) ): ?>
+                                <p class="description" style="color: #888;">
+                                    No True / False fields found for this content type.
+                                    Add one in ACF → Field Groups, then return here.
+                                </p>
+                                <input type="hidden"
+                                    name="cfd_settings[cfd_featured_fields][<?php echo esc_attr( $cpt_slug ); ?>]"
+                                    value="" />
+                            <?php else: ?>
+                                <select
+                                    id="<?php echo esc_attr( $field_id ); ?>"
+                                    name="cfd_settings[cfd_featured_fields][<?php echo esc_attr( $cpt_slug ); ?>]"
+                                >
+                                    <option value="">— Disabled —</option>
+                                    <?php foreach ( $boolean_fields as $field_name => $field_label ): ?>
+                                        <option value="<?php echo esc_attr( $field_name ); ?>"
+                                            <?php selected( $current_field, $field_name ); ?>>
+                                            <?php echo esc_html( $field_label ); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description">
+                                    Field name: <code><?php echo esc_html( $current_field ?: '(none)' ); ?></code>
+                                </p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </table>
+            <?php endif; ?>
 
             <!-- ── Quick Access Links ─────────────────────────── -->
             <h2>Enlaces rápidos (Herramientas)</h2>

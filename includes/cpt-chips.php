@@ -80,7 +80,17 @@ function cfd_register_cpt_chips( string $cpt_slug, array $config ): void {
 }
 
 /**
- * Retrieve the chip config for a CPT, or null if none registered.
+ * Returns the chip config for a CPT.
+ *
+ * Resolution order:
+ *   1. Explicit registration via cfd_register_cpt_chips() — full control.
+ *   2. Auto-detection — zero config required on any site:
+ *      • context_chips + filter_facets: every non-builtin taxonomy
+ *        registered to this CPT via get_object_taxonomies().
+ *      • status_chips + quick_toggles: the ACF true/false field chosen
+ *        in Settings → Client Dashboard → Featured Toggle.
+ *
+ * Returns null when nothing is detected (no chips rendered, no overhead).
  *
  * @param string $cpt_slug  Post type slug.
  * @return array|null
@@ -88,14 +98,130 @@ function cfd_register_cpt_chips( string $cpt_slug, array $config ): void {
 function cfd_get_cpt_chip_config( string $cpt_slug ): ?array {
     global $cfd_chip_registry;
 
-    // Ensure configs have been registered (fires once on first call).
+    // Fire the registration hook once so power-user overrides can register.
     static $fired = false;
     if ( ! $fired ) {
         $fired = true;
         do_action( 'cfd_register_chip_configs' );
     }
 
-    return $cfd_chip_registry[ $cpt_slug ] ?? null;
+    // Explicit registration wins — return it as-is.
+    if ( isset( $cfd_chip_registry[ $cpt_slug ] ) ) {
+        return $cfd_chip_registry[ $cpt_slug ];
+    }
+
+    // ── Auto-detect ────────────────────────────────────────────
+    $taxonomy_sources = cfd_auto_detect_taxonomy_sources( $cpt_slug );
+
+    $settings      = get_option( 'cfd_settings', array() );
+    $featured_field = isset( $settings['cfd_featured_fields'][ $cpt_slug ] )
+        ? sanitize_key( $settings['cfd_featured_fields'][ $cpt_slug ] )
+        : '';
+
+    // Nothing at all — skip rendering entirely.
+    if ( empty( $taxonomy_sources ) && $featured_field === '' ) {
+        return null;
+    }
+
+    $status_chips  = array();
+    $quick_toggles = array();
+
+    if ( $featured_field !== '' ) {
+        $status_chips[] = array(
+            'type'   => 'acf_boolean',
+            'source' => $featured_field,
+            'label'  => 'Destacado',
+            'icon'   => 'star',
+        );
+        $quick_toggles[] = array(
+            'source'   => $featured_field,
+            'label'    => 'Mostrar en homepage',
+            'icon_on'  => 'star',
+            'icon_off' => 'star',
+        );
+    }
+
+    return array(
+        'context_chips'  => $taxonomy_sources,
+        'status_chips'   => $status_chips,
+        'quick_toggles'  => $quick_toggles,
+        'filter_facets'  => $taxonomy_sources,
+    );
+}
+
+/**
+ * Auto-detect non-builtin taxonomies registered to a CPT.
+ *
+ * Excludes WordPress core taxonomies (category, post_tag, post_format)
+ * and any taxonomy not visible in the admin UI.
+ *
+ * @param string $cpt_slug  Post type slug.
+ * @return array[]  Array of chip source definitions ready for context_chips.
+ */
+function cfd_auto_detect_taxonomy_sources( string $cpt_slug ): array {
+    $builtin = array( 'category', 'post_tag', 'post_format', 'link_category', 'nav_menu' );
+
+    $taxonomies = get_object_taxonomies( $cpt_slug, 'objects' );
+    $sources    = array();
+
+    foreach ( $taxonomies as $tax_slug => $tax_obj ) {
+        if ( in_array( $tax_slug, $builtin, true ) ) {
+            continue;
+        }
+        // Skip hidden/internal taxonomies.
+        if ( ! $tax_obj->show_ui && ! $tax_obj->public ) {
+            continue;
+        }
+
+        $sources[] = array(
+            'type'   => 'taxonomy',
+            'source' => $tax_slug,
+            'empty'  => 'Sin categoría',
+        );
+    }
+
+    return $sources;
+}
+
+/**
+ * Return ACF true/false fields registered to a CPT.
+ *
+ * Used by the admin settings page to build the "Featured Toggle" dropdown.
+ * Returns an associative array of [ field_name => 'Label (field_name)' ].
+ *
+ * @param string $cpt_slug  Post type slug.
+ * @return array
+ */
+function cfd_get_acf_boolean_fields_for_cpt( string $cpt_slug ): array {
+    if ( ! function_exists( 'acf_get_field_groups' ) || ! function_exists( 'acf_get_fields' ) ) {
+        return array();
+    }
+
+    $groups = acf_get_field_groups( array( 'post_type' => $cpt_slug ) );
+    $fields = array();
+
+    foreach ( $groups as $group ) {
+        $group_fields = acf_get_fields( $group['key'] );
+        if ( ! $group_fields ) {
+            continue;
+        }
+
+        foreach ( $group_fields as $field ) {
+            if ( $field['type'] === 'true_false' ) {
+                $fields[ $field['name'] ] = $field['label'] . ' (' . $field['name'] . ')';
+            }
+            // One level deep into ACF Group fields.
+            if ( $field['type'] === 'group' && ! empty( $field['sub_fields'] ) ) {
+                foreach ( $field['sub_fields'] as $sub ) {
+                    if ( $sub['type'] === 'true_false' ) {
+                        $fields[ $sub['name'] ] = $sub['label'] . ' (' . $sub['name'] . ')';
+                    }
+                }
+            }
+        }
+    }
+
+    return $fields;
 }
 
 // ═══════════════════════════════════════════════════════════
