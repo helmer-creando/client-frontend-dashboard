@@ -57,7 +57,6 @@ require_once CFD_PATH . 'includes/config.php';
 // ─── Load plugin modules ────────────────────────────────────
 require_once CFD_PATH . 'includes/roles-and-access.php';
 require_once CFD_PATH . 'includes/cpt-chips.php';         // v3.7: chip registry + engine
-require_once CFD_PATH . 'includes/cpt-chips-config.php';  // v3.7: per-site chip configs
 require_once CFD_PATH . 'includes/dashboard-renderer.php';
 require_once CFD_PATH . 'includes/styles.php';
 require_once CFD_PATH . 'includes/login.php';
