@@ -653,3 +653,243 @@ document.addEventListener('click', function (e) {
         });
     }
 })();
+
+/* ============================================================
+ * Phase 2 (v3.8): Undo toast + permanent-delete modal
+ * ============================================================ */
+
+(function () {
+    var data = window.cfdData || {};
+    var i18n = (data && data.i18n) || {};
+
+    // ────────────────────────────────────────────────────────
+    // 1. UNDO TOAST AFTER TRASH-DELETE
+    // ────────────────────────────────────────────────────────
+    function getQuery() {
+        var q = {};
+        var s = window.location.search.replace(/^\?/, '');
+        if (!s) return q;
+        s.split('&').forEach(function (pair) {
+            var p = pair.split('=');
+            q[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || '').replace(/\+/g, ' '));
+        });
+        return q;
+    }
+
+    function stripQueryFlags() {
+        // Remove trashed* params from the URL bar without reloading, so a
+        // refresh doesn't re-fire the toast.
+        try {
+            var url = new URL(window.location.href);
+            ['trashed', 'trashed_id', 'trashed_nonce'].forEach(function (k) {
+                url.searchParams.delete(k);
+            });
+            window.history.replaceState({}, document.title, url.toString());
+        } catch (e) {
+            // Older browsers: leave URL alone.
+        }
+    }
+
+    function makeToast(message, options) {
+        options = options || {};
+        var host = document.createElement('div');
+        host.className = 'cfd-toast' + (options.success ? ' cfd-toast--success' : '');
+        host.setAttribute('role', 'status');
+        host.setAttribute('aria-live', 'polite');
+
+        var icon = document.createElement('span');
+        icon.className = 'cfd-toast__icon material-symbols-outlined';
+        icon.setAttribute('aria-hidden', 'true');
+        // 'delete' codepoint U+E92E for trash, 'check_circle' U+F0BE for success.
+        icon.innerHTML = options.success ? '&#xF0BE;' : '&#xE92E;';
+        host.appendChild(icon);
+
+        var msg = document.createElement('span');
+        msg.className = 'cfd-toast__msg';
+        msg.textContent = message;
+        host.appendChild(msg);
+
+        var actionBtn = null;
+        if (options.actionLabel && typeof options.onAction === 'function') {
+            actionBtn = document.createElement('button');
+            actionBtn.type = 'button';
+            actionBtn.className = 'cfd-toast__action';
+            actionBtn.textContent = options.actionLabel;
+            actionBtn.addEventListener('click', function () {
+                options.onAction(host);
+            });
+            host.appendChild(actionBtn);
+        }
+
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'cfd-toast__close';
+        closeBtn.setAttribute('aria-label', i18n.closeLabel || 'Cerrar');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.addEventListener('click', function () {
+            dismiss();
+        });
+        host.appendChild(closeBtn);
+
+        document.body.appendChild(host);
+        // Trigger CSS enter transition on next frame.
+        requestAnimationFrame(function () {
+            host.classList.add('is-visible');
+        });
+
+        var timer = null;
+        function dismiss() {
+            if (timer) { clearTimeout(timer); timer = null; }
+            host.classList.remove('is-visible');
+            host.classList.add('is-leaving');
+            setTimeout(function () {
+                if (host.parentNode) host.parentNode.removeChild(host);
+            }, 250);
+        }
+        host.dismiss = dismiss;
+
+        if (options.timeout && options.timeout > 0) {
+            timer = setTimeout(dismiss, options.timeout);
+        }
+
+        return host;
+    }
+
+    function initTrashedToast() {
+        var q = getQuery();
+        if (q.trashed !== 'true' || !q.trashed_id || !q.trashed_nonce) {
+            return;
+        }
+        var postId = parseInt(q.trashed_id, 10);
+        var nonce = q.trashed_nonce;
+        if (!postId || !nonce) {
+            return;
+        }
+        // Pull the post title from the success banner if available — fallback
+        // to a generic word.
+        var msg = i18n.trashedToast || 'movido a la papelera.';
+        var fullMsg = 'Entrada ' + msg;
+
+        var toast = makeToast(fullMsg, {
+            actionLabel: i18n.undoLabel || 'Deshacer',
+            timeout: 8000,
+            onAction: function (host) {
+                undoTrash(postId, nonce, host);
+            }
+        });
+        stripQueryFlags();
+    }
+
+    function undoTrash(postId, nonce, host) {
+        if (!data.restUrl) {
+            window.location.reload();
+            return;
+        }
+        var actionBtn = host.querySelector('.cfd-toast__action');
+        if (actionBtn) {
+            actionBtn.disabled = true;
+            actionBtn.textContent = '…';
+        }
+        fetch(data.restUrl + 'restore/' + postId, {
+            method: 'POST',
+            headers: {
+                'X-CFD-Nonce': nonce,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+            .then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (json) {
+                if (json && json.ok) {
+                    // Reload so the listing reflects the restored row in its
+                    // correct position with chips/timestamp re-rendered.
+                    window.location.reload();
+                } else {
+                    showUndoError(host);
+                }
+            })
+            .catch(function () { showUndoError(host); });
+    }
+
+    function showUndoError(host) {
+        if (host && host.dismiss) host.dismiss();
+        makeToast(i18n.undoError || 'No se pudo deshacer.', { timeout: 6000 });
+    }
+
+    // ────────────────────────────────────────────────────────
+    // 2. PERMANENT-DELETE MODAL (type-ELIMINAR)
+    // ────────────────────────────────────────────────────────
+    function initDeleteForeverModal() {
+        var modal = document.querySelector('[data-cfd-delete-forever-modal]');
+        if (!modal) return;
+
+        var form     = modal.querySelector('[data-cfd-delete-forever-form]');
+        var idInput  = modal.querySelector('[data-cfd-modal-id]');
+        var nonceIn  = modal.querySelector('[data-cfd-modal-nonce]');
+        var target   = modal.querySelector('[data-cfd-modal-target]');
+        var input    = modal.querySelector('#cfd-df-confirm-input');
+        var submit   = form ? form.querySelector('.cfd-confirm-modal__btn--destroy') : null;
+        var cancels  = modal.querySelectorAll('[data-cfd-modal-cancel]');
+
+        function open(postId, title, nonce) {
+            if (idInput) idInput.value = String(postId);
+            if (nonceIn) nonceIn.value = nonce || '';
+            if (target) target.textContent = title || '';
+            if (input) input.value = '';
+            if (submit) submit.disabled = true;
+            modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
+            setTimeout(function () {
+                if (input) input.focus();
+            }, 50);
+        }
+        function close() {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            if (input) input.value = '';
+            if (submit) submit.disabled = true;
+        }
+
+        // Wire up triggers — any element with data-cfd-delete-forever on the page.
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-cfd-delete-forever]');
+            if (!trigger) return;
+            e.preventDefault();
+            var id = trigger.getAttribute('data-id');
+            var title = trigger.getAttribute('data-title') || '';
+            var nonce = trigger.getAttribute('data-nonce') || '';
+            open(id, title, nonce);
+        });
+
+        cancels.forEach(function (el) {
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                close();
+            });
+        });
+
+        if (input && submit) {
+            input.addEventListener('input', function () {
+                submit.disabled = (input.value.trim().toUpperCase() !== 'ELIMINAR');
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+                close();
+            }
+        });
+    }
+
+    // Init both pieces on DOM ready.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            initTrashedToast();
+            initDeleteForeverModal();
+        });
+    } else {
+        initTrashedToast();
+        initDeleteForeverModal();
+    }
+})();

@@ -20,6 +20,61 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// ─── HELPER: Render a Material Symbols icon by codepoint ────
+// The self-hosted font is subset to ~15 KB by dropping GSUB (ligatures),
+// so icons must be rendered by their PUA codepoint, not by typed name.
+// Adding a new icon: append a codepoint here AND re-run pyftsubset
+// (see docs/feature-plan-v3.8.md §2G).
+
+function cfd_icon(string $name, string $extra_class = ''): string
+{
+    static $map = array(
+        'arrow_back'         => 'E5C4',
+        'add_circle'         => 'E3BA',
+        'edit'               => 'F097',
+        'delete'             => 'E92E',
+        'search_off'         => 'EA76',
+        'inbox'              => 'E156',
+        'check_circle'       => 'F0BE',
+        'open_in_new'        => 'E89E',
+        'file_copy'          => 'E173',
+        'more_vert'          => 'E5D4',
+        'save'               => 'E161',
+        'auto_awesome'       => 'E65F',
+        'auto_fix'           => 'E663',
+        'chevron_left'       => 'E5CB',
+        'chevron_right'      => 'E5CC',
+        'filter_alt'         => 'EF4F',
+        'lightbulb'          => 'E90F',
+        'web'                => 'E051',
+        // Phase 2 (v3.8).
+        'visibility'         => 'E8F4',
+        'visibility_off'     => 'E8F5',
+        'restore_from_trash' => 'E938',
+        'delete_forever'     => 'E92B',
+        // Chip / quick-toggle icons (admin-configurable in CPT chips).
+        'star'               => 'F09A',
+        'flag'               => 'F0C6',
+        'event'              => 'E878',
+        'bookmark'           => 'E8E7',
+        'favorite'           => 'E87E',
+        'verified'           => 'EF76',
+        'category'           => 'E574',
+        'label'              => 'E893',
+        'circle'             => 'EF4A',
+        'schedule'           => 'EFD6',
+        'place'              => 'F1DB',
+        'language'           => 'E894',
+    );
+    $cp = isset($map[$name]) ? $map[$name] : '';
+    if ($cp === '') {
+        // In dev, surface missing icon names; in prod just render nothing.
+        return defined('WP_DEBUG') && WP_DEBUG ? '<span class="material-symbols-outlined" aria-hidden="true">?</span>' : '';
+    }
+    $cls = 'material-symbols-outlined' . ($extra_class !== '' ? ' ' . $extra_class : '');
+    return '<span class="' . esc_attr($cls) . '" aria-hidden="true">&#x' . $cp . ';</span>';
+}
+
 // ─── HELPER: Get dashboard page URL (cached) ────────────────
 // The original snippet called get_page_by_path() + get_permalink()
 // in every render function. Each is a DB query. Now we compute
@@ -105,8 +160,15 @@ function cfd_handle_cpt_delete(): void
 
     wp_trash_post($post_id);
 
+    // Pass the trashed ID + a restore nonce so the post-redirect toast can
+    // offer an AJAX "Deshacer" without another round-trip for the nonce.
     $redirect_url = add_query_arg(
-        array('manage' => $cpt_slug, 'trashed' => 'true'),
+        array(
+            'manage'         => $cpt_slug,
+            'trashed'        => 'true',
+            'trashed_id'     => $post_id,
+            'trashed_nonce'  => wp_create_nonce('cfd_restore_' . $post_id),
+        ),
         cfd_get_dashboard_url()
     );
 
@@ -197,6 +259,247 @@ function cfd_handle_cpt_duplicate(): void
 }
 
 // ═══════════════════════════════════════════════════════════
+// 2c. HANDLE VISIBILITY TOGGLE (publish ↔ draft)
+// ═══════════════════════════════════════════════════════════
+// The "hide" mechanism: flip post_status. WP keeps every other field
+// untouched, so toggling back is lossless.
+
+add_action('template_redirect', 'cfd_handle_cpt_visibility');
+
+function cfd_handle_cpt_visibility(): void
+{
+    $config = cfd_get_config();
+    if (!is_page($config['dashboard_slug'])) {
+        return;
+    }
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    $action  = isset($_GET['action']) ? sanitize_key($_GET['action']) : '';
+    $post_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    $nonce   = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+
+    if ($action !== 'toggle_visibility' || $post_id < 1) {
+        return;
+    }
+    if (!wp_verify_nonce($nonce, 'cfd_visibility_' . $post_id)) {
+        return;
+    }
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    $post = get_post($post_id);
+    if (!$post) {
+        return;
+    }
+    $cpt_slug = $post->post_type;
+
+    $user_config = cfd_get_user_config();
+    if (!in_array($cpt_slug, $user_config['manageable_cpts'], true)) {
+        return;
+    }
+
+    // Flip status. Anything that isn't 'publish' becomes 'publish'; 'publish'
+    // becomes 'draft'. Trashed posts can't be toggled (they aren't visible
+    // in the main listing — the Papelera handles those).
+    if ($post->post_status === 'trash') {
+        return;
+    }
+    $new_status = ($post->post_status === 'publish') ? 'draft' : 'publish';
+    wp_update_post(array(
+        'ID'          => $post_id,
+        'post_status' => $new_status,
+    ));
+
+    $flag = ($new_status === 'draft') ? 'hidden' : 'shown';
+
+    // Preserve return context: if the user came from the editor, send them
+    // back there; otherwise to the listing.
+    $from_editor = isset($_GET['from']) && $_GET['from'] === 'editor';
+    if ($from_editor) {
+        $redirect_url = add_query_arg(
+            array('edit' => $cpt_slug, 'id' => $post_id, $flag => 'true'),
+            cfd_get_dashboard_url()
+        );
+    } else {
+        $redirect_url = add_query_arg(
+            array('manage' => $cpt_slug, $flag => 'true'),
+            cfd_get_dashboard_url()
+        );
+    }
+
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2d. HANDLE TRASH RESTORE (Papelera → Restaurar)
+// ═══════════════════════════════════════════════════════════
+// wp_untrash_post() reads _wp_trash_meta_status and returns the post
+// to its prior state (publish or draft). Free with WP.
+
+add_action('template_redirect', 'cfd_handle_cpt_restore');
+
+function cfd_handle_cpt_restore(): void
+{
+    $config = cfd_get_config();
+    if (!is_page($config['dashboard_slug'])) {
+        return;
+    }
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    $action  = isset($_GET['action']) ? sanitize_key($_GET['action']) : '';
+    $post_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    $nonce   = isset($_GET['_wpnonce']) ? sanitize_text_field($_GET['_wpnonce']) : '';
+
+    if ($action !== 'restore' || $post_id < 1) {
+        return;
+    }
+    if (!wp_verify_nonce($nonce, 'cfd_restore_' . $post_id)) {
+        return;
+    }
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    $post = get_post($post_id);
+    if (!$post || $post->post_status !== 'trash') {
+        return;
+    }
+    $cpt_slug = $post->post_type;
+
+    $user_config = cfd_get_user_config();
+    if (!in_array($cpt_slug, $user_config['manageable_cpts'], true)) {
+        return;
+    }
+
+    wp_untrash_post($post_id);
+
+    $redirect_url = add_query_arg(
+        array('manage' => $cpt_slug, 'view' => 'trash', 'restored' => 'true'),
+        cfd_get_dashboard_url()
+    );
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2e. HANDLE PERMANENT DELETE (Papelera → Eliminar definitivamente)
+// ═══════════════════════════════════════════════════════════
+// Requires both a nonce AND a server-side POST token ('ELIMINAR')
+// so client-side modal logic can't be bypassed.
+
+add_action('template_redirect', 'cfd_handle_cpt_delete_forever');
+
+function cfd_handle_cpt_delete_forever(): void
+{
+    $config = cfd_get_config();
+    if (!is_page($config['dashboard_slug'])) {
+        return;
+    }
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    // POST-only (form submission), not GET — extra safety against accidental
+    // clicks on copy-pasted URLs.
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return;
+    }
+
+    $action  = isset($_POST['cfd_action']) ? sanitize_key($_POST['cfd_action']) : '';
+    $post_id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+    $nonce   = isset($_POST['_wpnonce']) ? sanitize_text_field($_POST['_wpnonce']) : '';
+    $token   = isset($_POST['cfd_confirm']) ? sanitize_text_field(wp_unslash($_POST['cfd_confirm'])) : '';
+
+    if ($action !== 'delete_forever' || $post_id < 1) {
+        return;
+    }
+    if (!wp_verify_nonce($nonce, 'cfd_delete_forever_' . $post_id)) {
+        return;
+    }
+    if (strtoupper(trim($token)) !== 'ELIMINAR') {
+        return;
+    }
+    if (!current_user_can('delete_post', $post_id)) {
+        return;
+    }
+
+    $post = get_post($post_id);
+    if (!$post || $post->post_status !== 'trash') {
+        return;
+    }
+    $cpt_slug = $post->post_type;
+
+    $user_config = cfd_get_user_config();
+    if (!in_array($cpt_slug, $user_config['manageable_cpts'], true)) {
+        return;
+    }
+
+    wp_delete_post($post_id, true); // force=true bypasses trash, hard delete.
+
+    $redirect_url = add_query_arg(
+        array('manage' => $cpt_slug, 'view' => 'trash', 'deleted_forever' => 'true'),
+        cfd_get_dashboard_url()
+    );
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 2f. APPLY SAVE-INTENT FROM DASHBOARD FORMS
+// ═══════════════════════════════════════════════════════════
+// ACF's acf_form() supports only one submit button via html_submit_button.
+// We add a secondary button (Guardar borrador / Guardar y ocultar /
+// Guardar y publicar) with name="cfd_save_as" and override the resulting
+// post_status here, after ACF has written its field values.
+
+add_action('acf/save_post', 'cfd_apply_save_intent', 20);
+
+function cfd_apply_save_intent($post_id): void
+{
+    if (!is_numeric($post_id)) {
+        return;
+    }
+    $post_id = (int) $post_id;
+    if ($post_id < 1) {
+        return;
+    }
+
+    $intent = isset($_POST['cfd_save_as']) ? sanitize_key($_POST['cfd_save_as']) : '';
+    if (!in_array($intent, array('draft', 'publish'), true)) {
+        return;
+    }
+
+    if (!current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    $post = get_post($post_id);
+    if (!$post) {
+        return;
+    }
+
+    $user_config = cfd_get_user_config();
+    if (!in_array($post->post_type, $user_config['manageable_cpts'], true)) {
+        return;
+    }
+
+    if ($post->post_status === $intent) {
+        return;
+    }
+
+    wp_update_post(array(
+        'ID'          => $post_id,
+        'post_status' => $intent,
+    ));
+}
+
+// ═══════════════════════════════════════════════════════════
 // 3. ENQUEUE ASSETS ON DASHBOARD
 // ═══════════════════════════════════════════════════════════
 
@@ -212,12 +515,14 @@ function cfd_enqueue_dashboard_assets(): void
         return;
     }
 
-    // Material Symbols Outlined (for Kindred Hearth design system)
+    // Material Symbols Outlined — self-hosted, subsetted to ~15 KB.
+    // Renders via codepoint (see cfd_icon helper); GSUB stripped to keep size down.
+    // `font-display: block` (in the CSS file) prevents the FOIT-to-literal-text flash.
     wp_enqueue_style(
         'cfd-material-symbols',
-        'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap',
+        CFD_URL . 'assets/css/material-symbols.css',
         array(),
-        null
+        CFD_VERSION
     );
 
     // WordPress media uploader (needed for ACF image fields).
@@ -256,9 +561,17 @@ function cfd_enqueue_dashboard_assets(): void
         true // Load in footer.
     );
 
-    // Pass AJAX URL to dashboard JS for quick-toggle requests.
+    // Pass URLs/nonces to dashboard JS for quick-toggle + undo-toast requests.
     wp_localize_script( 'cfd-dashboard', 'cfdData', array(
         'ajaxurl' => admin_url( 'admin-ajax.php' ),
+        'restUrl' => esc_url_raw( rest_url( 'cfd/v1/' ) ),
+        'i18n'    => array(
+            'trashedToast'  => 'movido a la papelera.',
+            'undoLabel'     => 'Deshacer',
+            'closeLabel'    => 'Cerrar',
+            'restoredToast' => 'Restaurado.',
+            'undoError'     => 'No se pudo deshacer. Recarga e inténtalo desde la papelera.',
+        ),
     ) );
 }
 
@@ -293,7 +606,12 @@ function cfd_render_dashboard(): string
         cfd_render_cpt_editor($action, $post_id, $user);
     }
     elseif ($manage && in_array($manage, $config['manageable_cpts'], true)) {
-        cfd_render_cpt_list($manage, $user);
+        $view = isset($_GET['view']) ? sanitize_key($_GET['view']) : '';
+        if ($view === 'trash') {
+            cfd_render_cpt_trash($manage, $user);
+        } else {
+            cfd_render_cpt_list($manage, $user);
+        }
     }
     elseif ($create && in_array($create, $config['manageable_cpts'], true)) {
         cfd_render_cpt_creator($create, $user);
@@ -779,7 +1097,7 @@ function cfd_maybe_render_view_hint( $view, $cpt_label = '' ): void {
 function cfd_render_concierge_tip( string $title, string $text ): void {
     echo '<div class="kh-tip-card">';
     echo '  <div class="kh-tip-card__icon">';
-    echo '    <span class="material-symbols-outlined kh-icon--filled">lightbulb</span>';
+    echo '    ' . cfd_icon('lightbulb', 'kh-icon--filled') . '';
     echo '  </div>';
     echo '  <div>';
     echo '    <h3 class="kh-tip-card__title">' . esc_html( $title ) . '</h3>';
@@ -863,7 +1181,7 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
         } else {
             // Placeholder pattern for pages without a featured image
             echo '    <div class="kh-page-card__placeholder">';
-            echo '      <span class="material-symbols-outlined">web</span>';
+            echo '      ' . cfd_icon('web') . '';
             echo '    </div>';
         }
         
@@ -876,13 +1194,13 @@ function cfd_render_dashboard_home(WP_User $user, array $config): void
         echo '  <div class="kh-page-card__header">';
         echo '    <h2 class="kh-page-card__title">' . esc_html($page->post_title) . '</h2>';
         echo '    <a class="kh-page-card__view" href="' . esc_url($view_url) . '" target="_blank">';
-        echo '      <span class="material-symbols-outlined">open_in_new</span> Ver en línea';
+        echo '      ' . cfd_icon('open_in_new') . ' Ver en línea';
         echo '    </a>';
         echo '  </div>'; // End kh-page-card__header
         
         echo '  <p class="kh-page-card__meta">Último cambio: hace ' . esc_html($time_ago) . '</p>';
         echo '  <a href="' . esc_url($edit_url) . '" class="kh-page-card__btn">';
-        echo '    <span class="material-symbols-outlined kh-icon--filled">edit</span> Editar esta página';
+        echo '    ' . cfd_icon('edit', 'kh-icon--filled') . ' Editar esta página';
         echo '  </a>';
         echo '</div>'; // End kh-page-card
     }
@@ -941,19 +1259,19 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         $dashboard_url
     );
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a mis páginas</a>';
 
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header kh-editor__header">';
     echo '  <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver online</a>';
+    echo '  <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview">' . cfd_icon('open_in_new') . ' Ver online</a>';
     // View-hint sits inside the header so it appears above the divider line.
     cfd_maybe_render_view_hint( 'edit_page' );
     echo '</div>';
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
         echo '<div class="cd-success kh-editor__success">';
-        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  ' . cfd_icon('check_circle', 'kh-icon--filled') . '';
         echo '  <span>¡Tus cambios han sido guardados!</span>';
         echo '</div>';
     }
@@ -968,7 +1286,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
         'submit_value' => 'Guardar cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
+        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save">' . cfd_icon('save') . ' Guardar cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
@@ -977,7 +1295,7 @@ function cfd_render_page_editor(int $post_id, WP_User $user): void
 
     echo '</div>'; // End cd-editor
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a mis páginas</a>';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -994,13 +1312,25 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     $dashboard_url = cfd_get_dashboard_url();
 
-    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a mis páginas</a>';
+    echo '<a href="' . esc_url($dashboard_url) . '" class="cd-back-link kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a mis páginas</a>';
 
     if (isset($_GET['trashed']) && $_GET['trashed'] === 'true') {
-        echo '<div class="cd-success kh-editor__success"><span class="material-symbols-outlined kh-icon--filled">check_circle</span> <span>Entrada eliminada correctamente</span></div>';
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada eliminada correctamente</span></div>';
     }
     if (isset($_GET['created']) && $_GET['created'] === 'true') {
-        echo '<div class="cd-success kh-editor__success"><span class="material-symbols-outlined kh-icon--filled">check_circle</span> <span>Entrada creada con éxito</span></div>';
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada creada con éxito</span></div>';
+    }
+    if (isset($_GET['hidden']) && $_GET['hidden'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada ocultada. Ya no aparece online.</span></div>';
+    }
+    if (isset($_GET['shown']) && $_GET['shown'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada publicada. Ya aparece online.</span></div>';
+    }
+    if (isset($_GET['restored']) && $_GET['restored'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada restaurada.</span></div>';
+    }
+    if (isset($_GET['deleted_forever']) && $_GET['deleted_forever'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada eliminada permanentemente.</span></div>';
     }
 
     echo '<div class="cd-cpt-list">';
@@ -1009,7 +1339,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
     $create_url = add_query_arg(array('create' => $cpt_slug), $dashboard_url);
     echo '  <a href="' . esc_url($create_url) . '" class="cd-add-btn kh-content__add">';
-    echo '    <span class="material-symbols-outlined kh-icon--filled">add_circle</span> Agregar nuevo';
+    echo '    ' . cfd_icon('add_circle', 'kh-icon--filled') . ' Agregar nuevo';
     echo '  </a>';
     echo '</div>';
     cfd_maybe_render_view_hint( 'manage', $cpt_obj->labels->name );
@@ -1107,8 +1437,9 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     }
 
     // ── Query posts with WP_Query for pagination support ────
-    // Include 'draft' so items already created in wp-admin appear here with
-    // an "En proceso (oculto)" pill — dashboard itself only saves as 'publish'.
+    // Include 'draft' so hidden items appear here with an "Oculto" pill.
+    // The dashboard's hide/show toggle flips publish ↔ draft via the
+    // visibility handler (see cfd_handle_cpt_visibility).
     $query_args = array(
         'post_type' => $cpt_slug,
         'post_status' => array('publish', 'draft'),
@@ -1145,7 +1476,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     if (!$query->have_posts()) {
         if ($search !== '') {
             echo '<div class="kh-empty-state">';
-            echo '  <div class="kh-empty-state__icon"><span class="material-symbols-outlined">search_off</span></div>';
+            echo '  <div class="kh-empty-state__icon">' . cfd_icon('search_off') . '</div>';
             echo '  <h3 class="kh-empty-state__title">Sin resultados</h3>';
             echo '  <p class="kh-empty-state__text">No se encontraron entradas para "<strong>' . esc_html($search) . '</strong>". Prueba con otra palabra.</p>';
             echo '</div>';
@@ -1153,21 +1484,42 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
         else {
             $create_url_empty = add_query_arg(array('create' => $cpt_slug), $dashboard_url);
             echo '<div class="kh-empty-state">';
-            echo '  <div class="kh-empty-state__icon"><span class="material-symbols-outlined">inbox</span></div>';
+            echo '  <div class="kh-empty-state__icon">' . cfd_icon('inbox') . '</div>';
             echo '  <h3 class="kh-empty-state__title">Todavía no hay entradas</h3>';
             echo '  <p class="kh-empty-state__text">Crea la primera para que aparezca aquí.</p>';
             echo '  <a href="' . esc_url($create_url_empty) . '" class="kh-empty-state__btn cd-add-btn kh-content__add">';
-            echo '    <span class="material-symbols-outlined kh-icon--filled">add_circle</span> Agregar nuevo';
+            echo '    ' . cfd_icon('add_circle', 'kh-icon--filled') . ' Agregar nuevo';
             echo '  </a>';
             echo '</div>';
         }
     }
     else {
-        // ── Post count ──
+        // ── Post count + Papelera pill-badge ──
         $first_item = (($pag - 1) * $per_page) + 1;
         $last_item = min($pag * $per_page, $total_posts);
 
-        echo '<p class="cd-cpt-count">Mostrando ' . $first_item . '–' . $last_item . ' de ' . $total_posts . '</p>';
+        // Count trashed posts for this CPT (count-gated badge — invisible at 0).
+        $trash_count = 0;
+        if ( current_user_can( 'edit_posts' ) ) {
+            $trash_query = new WP_Query(array(
+                'post_type'      => $cpt_slug,
+                'post_status'    => 'trash',
+                'posts_per_page' => 1,
+                'fields'         => 'ids',
+                'no_found_rows'  => false,
+            ));
+            $trash_count = (int) $trash_query->found_posts;
+        }
+
+        echo '<div class="cd-cpt-count-row">';
+        echo '  <p class="cd-cpt-count">Mostrando ' . $first_item . '–' . $last_item . ' de ' . $total_posts . '</p>';
+        if ( $trash_count > 0 ) {
+            $trash_view_url = add_query_arg(array('manage' => $cpt_slug, 'view' => 'trash'), $dashboard_url);
+            echo '  <a href="' . esc_url($trash_view_url) . '" class="kh-trash-badge" aria-label="' . esc_attr( $trash_count . ' en la papelera' ) . '">';
+            echo '    ' . cfd_icon('delete') . '<span class="kh-trash-badge__count">' . (int) $trash_count . '</span>';
+            echo '  </a>';
+        }
+        echo '</div>';
 
         // ── Grid of cards ──
         echo '<div class="cd-cpt-grid">';
@@ -1179,6 +1531,12 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 'action'   => 'trash',
                 'id'       => $p->ID,
                 '_wpnonce' => wp_create_nonce('cfd_trash_' . $p->ID),
+                'manage'   => $cpt_slug,
+            ), $dashboard_url);
+            $visibility_url = add_query_arg(array(
+                'action'   => 'toggle_visibility',
+                'id'       => $p->ID,
+                '_wpnonce' => wp_create_nonce('cfd_visibility_' . $p->ID),
                 'manage'   => $cpt_slug,
             ), $dashboard_url);
 
@@ -1217,7 +1575,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
             echo '    <div class="kh-content-item__heading">';
             echo '      <h3 class="kh-content-item__title">' . esc_html($p->post_title) . '</h3>';
             if ($is_draft) {
-                echo '      <span class="kh-content-item__status">En proceso (oculto)</span>';
+                echo '      <span class="kh-content-item__status">Oculto</span>';
             }
             echo '    </div>';
             // ── Chip row (context + status chips) ───────────────
@@ -1244,11 +1602,18 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 echo $card_quick_toggle_html;
             }
             echo '    <a href="' . esc_url($edit_url) . '" class="cd-cpt-card__edit kh-content-item__edit">';
-            echo '      <span class="material-symbols-outlined">edit</span> Editar';
+            echo '      ' . cfd_icon('edit') . ' Editar';
             echo '    </a>';
+            if (current_user_can('edit_post', $p->ID)) {
+                $vis_label = $is_draft ? 'Mostrar' : 'Ocultar';
+                $vis_icon  = $is_draft ? 'visibility' : 'visibility_off';
+                echo '    <a href="' . esc_url($visibility_url) . '" class="cd-cpt-card__visibility kh-content-item__visibility" aria-label="' . esc_attr($vis_label . ' ' . $p->post_title) . '" title="' . esc_attr($vis_label) . '">';
+                echo '      ' . cfd_icon($vis_icon);
+                echo '    </a>';
+            }
             if (current_user_can('delete_post', $p->ID)) {
                 echo '    <button type="button" class="cd-cpt-card__delete kh-content-item__delete" data-cfd-delete data-id="' . esc_attr($p->ID) . '" data-title="' . esc_attr($p->post_title) . '" data-trash-url="' . esc_url($trash_url) . '" aria-label="' . esc_attr('Eliminar ' . $p->post_title) . '">';
-                echo '      <span class="material-symbols-outlined">delete</span>';
+                echo '      ' . cfd_icon('delete') . '';
                 echo '    </button>';
             }
             echo '  </div>';
@@ -1280,10 +1645,10 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 $prev_args = $base_args;
                 $prev_args['pag'] = $pag - 1;
                 $prev_url = add_query_arg($prev_args, $dashboard_url);
-                echo '<a href="' . esc_url($prev_url) . '" class="cd-cpt-pagination__link kh-pagination__link"><span class="material-symbols-outlined">chevron_left</span> Anterior</a>';
+                echo '<a href="' . esc_url($prev_url) . '" class="cd-cpt-pagination__link kh-pagination__link">' . cfd_icon('chevron_left') . ' Anterior</a>';
             }
             else {
-                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled"><span class="material-symbols-outlined">chevron_left</span> Anterior</span>';
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled">' . cfd_icon('chevron_left') . ' Anterior</span>';
             }
 
             // Page indicator
@@ -1294,10 +1659,10 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
                 $next_args = $base_args;
                 $next_args['pag'] = $pag + 1;
                 $next_url = add_query_arg($next_args, $dashboard_url);
-                echo '<a href="' . esc_url($next_url) . '" class="cd-cpt-pagination__link kh-pagination__link">Siguiente <span class="material-symbols-outlined">chevron_right</span></a>';
+                echo '<a href="' . esc_url($next_url) . '" class="cd-cpt-pagination__link kh-pagination__link">Siguiente ' . cfd_icon('chevron_right') . '</a>';
             }
             else {
-                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled">Siguiente <span class="material-symbols-outlined">chevron_right</span></span>';
+                echo '<span class="cd-cpt-pagination__link cd-cpt-pagination__link--disabled kh-pagination__link kh-pagination__link--disabled">Siguiente ' . cfd_icon('chevron_right') . '</span>';
             }
 
             echo '</nav>';
@@ -1309,7 +1674,7 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
     // Help banner at the bottom of the CPT list
     echo '<div class="kh-help-banner">';
     echo '  <div class="kh-help-banner__icon">';
-    echo '    <span class="material-symbols-outlined">auto_awesome</span>';
+    echo '    ' . cfd_icon('auto_awesome') . '';
     echo '  </div>';
     echo '  <div class="kh-help-banner__content">';
     echo '    <h3 class="kh-help-banner__title">¿Necesitas ayuda?</h3>';
@@ -1366,29 +1731,45 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         '_wpnonce' => wp_create_nonce('cfd_trash_' . $post_id),
     ), $dashboard_url) : '';
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
+    $can_edit = current_user_can('edit_post', $post_id);
+    $is_hidden = ($post->post_status === 'draft');
+    $visibility_url = $can_edit ? add_query_arg(array(
+        'action'   => 'toggle_visibility',
+        'id'       => $post_id,
+        'from'     => 'editor',
+        '_wpnonce' => wp_create_nonce('cfd_visibility_' . $post_id),
+    ), $dashboard_url) : '';
+
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
     echo '<div class="cd-editor__header kh-editor__header kh-editor__header--with-actions">';
     echo '<div class="kh-editor__header-row">';
     echo '  <div class="kh-editor__header-main">';
     echo '    <h1 class="cd-editor__title kh-editor__title">' . esc_html($post->post_title) . '</h1>';
-    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview"><span class="material-symbols-outlined">open_in_new</span> Ver online</a>';
+    echo '    <a href="' . esc_url(get_permalink($post_id)) . '" target="_blank" class="cd-preview-link kh-editor__preview">' . cfd_icon('open_in_new') . ' Ver online</a>';
     echo '  </div>';
 
     // ── Header action zone: Duplicar + Eliminar ──
     // Collapses to a `⋯` overflow menu on mobile (CSS-driven).
     echo '  <div class="kh-editor__header-actions" data-cfd-header-actions>';
     echo '    <button type="button" class="kh-editor__overflow-toggle" data-cfd-overflow-toggle aria-haspopup="true" aria-expanded="false" aria-label="Más acciones">';
-    echo '      <span class="material-symbols-outlined">more_vert</span>';
+    echo '      ' . cfd_icon('more_vert') . '';
     echo '    </button>';
     echo '    <div class="kh-editor__header-actions-menu">';
+    if ($can_edit && $visibility_url !== '') {
+        $vis_label = $is_hidden ? 'Mostrar online' : 'Ocultar';
+        $vis_icon  = $is_hidden ? 'visibility' : 'visibility_off';
+        echo '      <a href="' . esc_url($visibility_url) . '" class="cd-visibility-link kh-editor__action">';
+        echo '        ' . cfd_icon($vis_icon) . ' ' . esc_html($vis_label);
+        echo '      </a>';
+    }
     echo '      <a href="' . esc_url($duplicate_url) . '" class="cd-duplicate-btn kh-editor__action">';
-    echo '        <span class="material-symbols-outlined">file_copy</span> Duplicar';
+    echo '        ' . cfd_icon('file_copy') . ' Duplicar';
     echo '      </a>';
     if ($can_delete) {
         echo '      <button type="button" class="cd-delete-link kh-editor__action kh-editor__action--danger" data-cfd-delete data-id="' . esc_attr($post_id) . '" data-title="' . esc_attr($post->post_title) . '" data-trash-url="' . esc_url($trash_url) . '">';
-        echo '        <span class="material-symbols-outlined">delete</span> Eliminar';
+        echo '        ' . cfd_icon('delete') . ' Eliminar';
         echo '      </button>';
     }
     echo '    </div>';
@@ -1400,21 +1781,57 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
 
     if (isset($_GET['updated']) && $_GET['updated'] === 'true') {
         echo '<div class="cd-success kh-editor__success">';
-        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  ' . cfd_icon('check_circle', 'kh-icon--filled') . '';
         echo '  <span>¡Tus cambios han sido guardados!</span>';
         echo '</div>';
     }
     if (isset($_GET['duplicated']) && $_GET['duplicated'] === 'true') {
         echo '<div class="cd-success kh-editor__success">';
-        echo '  <span class="material-symbols-outlined kh-icon--filled">check_circle</span>';
+        echo '  ' . cfd_icon('check_circle', 'kh-icon--filled') . '';
         echo '  <span>Contenido duplicado. Puedes editarlo a continuación.</span>';
+        echo '</div>';
+    }
+    if (isset($_GET['hidden']) && $_GET['hidden'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">';
+        echo '  ' . cfd_icon('check_circle', 'kh-icon--filled') . '';
+        echo '  <span>Esta entrada está oculta. Ya no aparece online.</span>';
+        echo '</div>';
+    }
+    if (isset($_GET['shown']) && $_GET['shown'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">';
+        echo '  ' . cfd_icon('check_circle', 'kh-icon--filled') . '';
+        echo '  <span>Esta entrada ya está publicada online.</span>';
         echo '</div>';
     }
 
     // Extensibility hook: before the editor form (e.g., translation links).
     do_action( 'cfd_editor_before_form', $post, $cpt_slug );
 
-    // Inline microcopy below pairs with the save button (replaces the standalone consejo card).
+    // Save button cluster:
+    //   - Primary "Guardar cambios" stays as ACF's submit (no status change).
+    //   - Secondary button posts cfd_save_as=draft|publish; cfd_apply_save_intent()
+    //     reads that on acf/save_post and flips post_status accordingly.
+    //   - Microcopy adapts to current state.
+    if ($is_hidden) {
+        $secondary_intent = 'publish';
+        $secondary_label  = 'Guardar y publicar';
+        $secondary_icon   = 'visibility';
+        $save_hint        = 'Guarda para seguir trabajando, o publica para que aparezca online.';
+    } else {
+        $secondary_intent = 'draft';
+        $secondary_label  = 'Guardar y ocultar';
+        $secondary_icon   = 'visibility_off';
+        $save_hint        = 'Guarda para actualizar, u oculta para que deje de aparecer online.';
+    }
+
+    $submit_html = '<div class="kh-editor__save-cluster">';
+    $submit_html .= '<button type="submit" class="cd-save-btn kh-editor__save">' . cfd_icon('save') . ' Guardar cambios</button>';
+    if ($can_edit) {
+        $submit_html .= '<button type="submit" name="cfd_save_as" value="' . esc_attr($secondary_intent) . '" class="kh-editor__save kh-editor__save--secondary">' . cfd_icon($secondary_icon) . ' ' . esc_html($secondary_label) . '</button>';
+    }
+    $submit_html .= '</div>';
+    $submit_html .= '<span class="kh-editor__save-hint">' . esc_html($save_hint) . '</span>';
+
     acf_form(array(
         'post_id' => $post_id,
         'post_title' => true,
@@ -1423,7 +1840,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
         'submit_value' => 'Guardar cambios',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">save</span> Guardar cambios</button><span class="kh-editor__save-hint">Los cambios se publican de inmediato.</span>',
+        'html_submit_button' => $submit_html,
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
@@ -1435,7 +1852,7 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
 
     cfd_render_delete_modal();
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a la lista</a>';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1454,12 +1871,22 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
     $back_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
     $return_url = add_query_arg(array('manage' => $cpt_slug, 'created' => 'true'), $dashboard_url);
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a la lista</a>';
 
     echo '<div class="cd-editor">';
     echo '<h1 class="cd-editor__title kh-editor__title">Crear nuevo: ' . esc_html($cpt_obj->labels->singular_name) . '</h1>';
     echo '<p class="cd-editor__sub kh-editor__subtitle">Completa los campos y publica.</p>';
     cfd_maybe_render_view_hint( 'create', $cpt_obj->labels->singular_name );
+
+    // Save cluster: primary publishes, secondary saves as draft (hidden).
+    // The 'new_post.post_status' default is 'publish'; the secondary button
+    // posts cfd_save_as=draft, which cfd_apply_save_intent() flips after ACF
+    // has written field values.
+    $submit_html = '<div class="kh-editor__save-cluster">';
+    $submit_html .= '<button type="submit" class="cd-save-btn kh-editor__save">' . cfd_icon('auto_fix') . ' Crear y publicar</button>';
+    $submit_html .= '<button type="submit" name="cfd_save_as" value="draft" class="kh-editor__save kh-editor__save--secondary">' . cfd_icon('visibility_off') . ' Guardar borrador</button>';
+    $submit_html .= '</div>';
+    $submit_html .= '<span class="kh-editor__save-hint">Publica para que aparezca online, o guarda como borrador para terminar después.</span>';
 
     acf_form(array(
         'post_id' => 'new_post',
@@ -1472,14 +1899,181 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
         'submit_value' => 'Crear y publicar',
         'updated_message' => false,
         'return' => $return_url,
-        'html_submit_button' => '<button type="submit" class="cd-save-btn kh-editor__save"><span class="material-symbols-outlined">magic_button</span> Crear y publicar</button>',
+        'html_submit_button' => $submit_html,
         'html_submit_spinner' => '',
         'form_attributes' => array('class' => 'cd-acf-form'),
     ));
 
     echo '</div>'; // End cd-editor
 
-    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back"><span class="material-symbols-outlined">arrow_back</span> Volver a la lista</a>';
+    echo '<a href="' . esc_url($back_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a la lista</a>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 10. PAPELERA (CPT TRASH VIEW)
+// ═══════════════════════════════════════════════════════════
+
+function cfd_render_cpt_trash(string $cpt_slug, WP_User $user): void
+{
+    $cpt_obj = get_post_type_object($cpt_slug);
+    if (!$cpt_obj) {
+        echo '<div class="cd-error">Tipo de contenido no encontrado.</div>';
+        return;
+    }
+
+    $dashboard_url = cfd_get_dashboard_url();
+    $list_url = add_query_arg(array('manage' => $cpt_slug), $dashboard_url);
+
+    echo '<a href="' . esc_url($list_url) . '" class="cd-back-link kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a ' . esc_html($cpt_obj->labels->name) . '</a>';
+
+    // Success messages.
+    if (isset($_GET['restored']) && $_GET['restored'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada restaurada.</span></div>';
+    }
+    if (isset($_GET['deleted_forever']) && $_GET['deleted_forever'] === 'true') {
+        echo '<div class="cd-success kh-editor__success">' . cfd_icon('check_circle', 'kh-icon--filled') . ' <span>Entrada eliminada permanentemente.</span></div>';
+    }
+
+    echo '<div class="cd-cpt-list kh-trash-view">';
+    echo '<div class="cd-cpt-list__header">';
+    echo '  <h1 class="cd-cpt-list__title kh-content__title">Papelera: ' . esc_html($cpt_obj->labels->name) . '</h1>';
+    echo '</div>';
+
+    $purge_days = defined('EMPTY_TRASH_DAYS') ? (int) EMPTY_TRASH_DAYS : 30;
+    if ($purge_days > 0) {
+        echo '<p class="kh-trash-view__intro">Los elementos eliminados se conservan durante <strong>' . (int) $purge_days . ' días</strong> y luego se borran para siempre.</p>';
+    } else {
+        echo '<p class="kh-trash-view__intro">Estos elementos están en la papelera.</p>';
+    }
+
+    $query = new WP_Query(array(
+        'post_type'      => $cpt_slug,
+        'post_status'    => 'trash',
+        'posts_per_page' => 50,
+        'orderby'        => 'modified',
+        'order'          => 'DESC',
+    ));
+
+    if (!$query->have_posts()) {
+        echo '<div class="kh-empty-state">';
+        echo '  <div class="kh-empty-state__icon">' . cfd_icon('inbox') . '</div>';
+        echo '  <h3 class="kh-empty-state__title">La papelera está vacía</h3>';
+        echo '  <p class="kh-empty-state__text">Los elementos que elimines aparecerán aquí';
+        if ($purge_days > 0) {
+            echo ' durante ' . (int) $purge_days . ' días';
+        }
+        echo '.</p>';
+        echo '</div>';
+        echo '</div>'; // .cd-cpt-list
+        return;
+    }
+
+    echo '<div class="cd-cpt-grid">';
+    while ($query->have_posts()) {
+        $query->the_post();
+        $p = get_post();
+
+        $trashed_ts = (int) get_post_meta($p->ID, '_wp_trash_meta_time', true);
+        if ($trashed_ts <= 0) {
+            $trashed_ts = strtotime($p->post_modified_gmt . ' UTC') ?: current_time('timestamp');
+        }
+        $trashed_ago = human_time_diff($trashed_ts, current_time('timestamp'));
+
+        $purge_in_html = '';
+        if ($purge_days > 0) {
+            $purge_ts = $trashed_ts + ($purge_days * DAY_IN_SECONDS);
+            $now      = current_time('timestamp');
+            if ($purge_ts > $now) {
+                $purge_in_html = '<span class="kh-trash-card__purge">Se borrará en ' . esc_html( human_time_diff($now, $purge_ts) ) . '</span>';
+            } else {
+                $purge_in_html = '<span class="kh-trash-card__purge">Será borrada pronto</span>';
+            }
+        }
+
+        $can_restore = current_user_can('edit_post', $p->ID);
+        $can_destroy = current_user_can('delete_post', $p->ID);
+
+        $restore_url = $can_restore ? add_query_arg(array(
+            'action'   => 'restore',
+            'id'       => $p->ID,
+            '_wpnonce' => wp_create_nonce('cfd_restore_' . $p->ID),
+            'manage'   => $cpt_slug,
+            'view'     => 'trash',
+        ), $dashboard_url) : '';
+
+        echo '<div class="cd-cpt-card kh-content-item kh-content-item--trashed">';
+        echo '  <div class="kh-content-item__info">';
+        echo '    <div class="kh-content-item__heading">';
+        echo '      <h3 class="kh-content-item__title">' . esc_html($p->post_title !== '' ? $p->post_title : '(sin título)') . '</h3>';
+        echo '    </div>';
+        echo '    <p class="kh-content-item__meta">Eliminado hace ' . esc_html($trashed_ago) . '</p>';
+        if ($purge_in_html !== '') {
+            echo '    <p class="kh-content-item__meta kh-content-item__meta--purge">' . $purge_in_html . '</p>';
+        }
+        echo '  </div>';
+
+        echo '  <div class="kh-content-item__actions">';
+        if ($can_restore && $restore_url !== '') {
+            echo '    <a href="' . esc_url($restore_url) . '" class="kh-content-item__restore" aria-label="' . esc_attr('Restaurar ' . $p->post_title) . '">';
+            echo '      ' . cfd_icon('restore_from_trash') . ' Restaurar';
+            echo '    </a>';
+        }
+        if ($can_destroy) {
+            $nonce = wp_create_nonce('cfd_delete_forever_' . $p->ID);
+            echo '    <button type="button" class="kh-content-item__delete-forever" data-cfd-delete-forever data-id="' . esc_attr($p->ID) . '" data-title="' . esc_attr($p->post_title) . '" data-nonce="' . esc_attr($nonce) . '" aria-label="' . esc_attr('Eliminar definitivamente ' . $p->post_title) . '">';
+            echo '      ' . cfd_icon('delete_forever') . ' Eliminar definitivamente';
+            echo '    </button>';
+        }
+        echo '  </div>';
+
+        echo '</div>'; // .kh-content-item
+    }
+    wp_reset_postdata();
+    echo '</div>'; // .cd-cpt-grid
+
+    echo '</div>'; // .cd-cpt-list
+
+    // Type-ELIMINAR modal (rendered once per page).
+    cfd_render_delete_forever_modal();
+
+    echo '<a href="' . esc_url($list_url) . '" class="cd-back-link cd-back-link--bottom kh-editor__back">' . cfd_icon('arrow_back') . ' Volver a ' . esc_html($cpt_obj->labels->name) . '</a>';
+}
+
+// Type-`ELIMINAR` confirmation modal. Used by the Papelera permanent-delete
+// action; the JS in dashboard.js wires the input listener.
+function cfd_render_delete_forever_modal(): void
+{
+    static $rendered = false;
+    if ($rendered) {
+        return;
+    }
+    $rendered = true;
+
+    $action_url = cfd_get_dashboard_url();
+
+    echo '<div class="cfd-confirm-modal cfd-confirm-modal--destructive" data-cfd-delete-forever-modal aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cfd-df-modal-title">';
+    echo '  <div class="cfd-confirm-modal__backdrop" data-cfd-modal-cancel></div>';
+    echo '  <div class="cfd-confirm-modal__panel">';
+    echo '    <h2 class="cfd-confirm-modal__title" id="cfd-df-modal-title">Eliminar permanentemente</h2>';
+    echo '    <p class="cfd-confirm-modal__body">';
+    echo '      <strong data-cfd-modal-target></strong> se eliminará para siempre.';
+    echo '      Esta acción <strong>no se puede deshacer</strong>.';
+    echo '    </p>';
+    echo '    <form method="post" action="' . esc_url($action_url) . '" class="cfd-confirm-modal__form" data-cfd-delete-forever-form>';
+    echo '      <input type="hidden" name="cfd_action" value="delete_forever">';
+    echo '      <input type="hidden" name="id" value="" data-cfd-modal-id>';
+    echo '      <input type="hidden" name="_wpnonce" value="" data-cfd-modal-nonce>';
+    echo '      <label class="cfd-confirm-modal__label" for="cfd-df-confirm-input">';
+    echo '        Para confirmar, escribe <strong>ELIMINAR</strong>:';
+    echo '      </label>';
+    echo '      <input type="text" id="cfd-df-confirm-input" name="cfd_confirm" class="cfd-confirm-modal__input" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" required>';
+    echo '      <div class="cfd-confirm-modal__actions">';
+    echo '        <button type="button" class="cfd-confirm-modal__btn cfd-confirm-modal__btn--cancel" data-cfd-modal-cancel>Cancelar</button>';
+    echo '        <button type="submit" class="cfd-confirm-modal__btn cfd-confirm-modal__btn--destroy" disabled>Eliminar para siempre</button>';
+    echo '      </div>';
+    echo '    </form>';
+    echo '  </div>';
+    echo '</div>';
 }
 
 // ═══════════════════════════════════════════════════════════

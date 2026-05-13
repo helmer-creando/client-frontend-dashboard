@@ -7,6 +7,9 @@ Every HTML block rendered by `dashboard-renderer.php` and every CSS section in `
 > 🔴 = **→ Plugin** (functional core, must stay in PHP)
 > 🟡 = **→ Hybrid** (logic in plugin, visual shell in Bricks)
 
+> [!IMPORTANT]
+> **v3.8 update (2026-05-13):** Phase 2 added hide/show toggle, draft creation, Papelera (`?view=trash`), undo toast, type-`ELIMINAR` permanent-delete, and self-hosted Material Symbols. Line numbers below are stale; authoritative reference for v3.8 is [docs/feature-plan-v3.8.md](feature-plan-v3.8.md). New functions: `cfd_icon`, `cfd_handle_cpt_visibility`, `cfd_handle_cpt_restore`, `cfd_handle_cpt_delete_forever`, `cfd_apply_save_intent`, `cfd_render_cpt_trash`, `cfd_render_delete_forever_modal`. New REST namespace: `cfd/v1`. All 🔴 Plugin.
+
 ---
 
 ## PHP Functions — [dashboard-renderer.php](file:///Volumes/Ikigai/%23HelpingOthers/AutentiWeb/dev/client-frontend-dashboard/includes/dashboard-renderer.php)

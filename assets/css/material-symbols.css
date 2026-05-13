@@ -1,0 +1,43 @@
+/**
+ * Material Symbols Outlined — self-hosted, subsetted.
+ *
+ * Subset contains only the ~22 icons used by the dashboard.
+ * Source: /Users/helmer/node_modules/material-symbols, subsetted with pyftsubset.
+ *
+ * Why self-hosted:
+ *  - Eliminates the third-party DNS/TLS roundtrip to fonts.gstatic.com.
+ *  - `font-display: block` hides invisible squares for up to 3s while loading
+ *    instead of flashing the literal text ("arrow_back") that the swap fallback
+ *    produced.
+ *
+ * Icons render via codepoint (not ligature): the subset drops GSUB to keep the
+ * file ~15 KB. See `cfd_icon()` in dashboard-renderer.php for the helper.
+ *
+ * Adding a new icon: add its codepoint to the $icon_map in cfd_icon(), then
+ * re-run the subset command documented in docs/feature-plan-v3.8.md §2G.
+ */
+
+@font-face {
+    font-family: "Material Symbols Outlined";
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: block;
+    src: url("../fonts/material-symbols-outlined-subset.woff2") format("woff2");
+}
+
+.material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}

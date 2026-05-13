@@ -3726,7 +3726,7 @@
     font-family: inherit;
 }
 
-/* ── Draft state + "En proceso (oculto)" pill ────────────── */
+/* ── Draft state + "Oculto" pill ─────────────────────────── */
 .kh-content-item--draft {
     border-left: 3px solid var(--accent, #C9A961);
 }
@@ -4487,5 +4487,347 @@ body.cfd-modal-open {
     .cfd-confirm-modal__btn {
         width: 100% !important;
         height: 52px !important;
+    }
+}
+
+/* ============================================================
+ * Phase 2 (v3.8) — visibility toggle, papelera, toast, modal
+ * ============================================================ */
+
+/* ── Visibility (hide/show) icon button on cards ─────────── */
+.kh-content-item__visibility {
+    position: relative;
+    z-index: 3; /* above stretched-link */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: var(--primary-ultra-light, #F5EFE6);
+    color: var(--primary-dark, #4A3F2C);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease;
+}
+.kh-content-item__visibility:hover {
+    background: var(--primary-light, #E8DCC4);
+}
+.kh-content-item__visibility:active {
+    transform: scale(0.94);
+}
+.kh-content-item__visibility .material-symbols-outlined {
+    font-size: 20px;
+}
+
+/* ── Trash pill-badge on count line ──────────────────────── */
+.cd-cpt-count-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s, 1rem);
+    flex-wrap: wrap;
+    margin: 0 0 var(--space-s, 1rem) 0;
+}
+.cd-cpt-count-row .cd-cpt-count {
+    margin: 0;
+}
+.kh-trash-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.25em 0.75em 0.25em 0.55em;
+    border-radius: 999px;
+    background: var(--kh-surface-variant, #EDE7E0);
+    color: var(--kh-on-surface-variant, #5F5953);
+    text-decoration: none;
+    font-size: var(--text-s, 0.875rem);
+    line-height: 1;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.kh-trash-badge:hover {
+    background: var(--primary-ultra-light, #F5EFE6);
+    color: var(--primary-dark, #4A3F2C);
+}
+.kh-trash-badge .material-symbols-outlined {
+    font-size: 18px;
+}
+.kh-trash-badge__count {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Trash view (Papelera) ──────────────────────────────── */
+.kh-trash-view__intro {
+    margin: 0 0 var(--space-m, 1.5rem) 0;
+    color: var(--kh-on-surface-variant, #5F5953);
+    font-size: var(--text-s, 0.875rem);
+}
+.kh-content-item--trashed {
+    opacity: 0.85;
+    background: var(--kh-surface-variant, #EDE7E0);
+}
+.kh-content-item--trashed .kh-content-item__title {
+    color: var(--kh-on-surface-variant, #5F5953);
+}
+.kh-content-item__meta--purge {
+    color: var(--accent, #C9A961);
+    font-weight: 500;
+}
+.kh-content-item__restore,
+.kh-content-item__delete-forever {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.5em 0.9em;
+    border-radius: var(--radius-s, 6px);
+    font-size: var(--text-s, 0.875rem);
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    font-family: inherit;
+}
+.kh-content-item__restore {
+    background: var(--primary-ultra-light, #F5EFE6);
+    color: var(--primary-dark, #4A3F2C);
+    border-color: transparent;
+}
+.kh-content-item__restore:hover {
+    background: var(--primary-light, #E8DCC4);
+}
+.kh-content-item__delete-forever {
+    background: transparent;
+    color: var(--kh-error, #B3261E);
+    border-color: var(--kh-error, #B3261E);
+}
+.kh-content-item__delete-forever:hover {
+    background: var(--kh-error, #B3261E);
+    color: #fff;
+}
+.kh-content-item__restore .material-symbols-outlined,
+.kh-content-item__delete-forever .material-symbols-outlined {
+    font-size: 18px;
+}
+
+/* ── Save cluster (primary + secondary save button) ──────── */
+.kh-editor__save-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs, 0.5rem);
+    align-items: center;
+}
+.kh-editor__save--secondary {
+    background: transparent;
+    color: var(--primary-dark, #4A3F2C);
+    border: 1px solid var(--primary-dark, #4A3F2C);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.65em 1.1em;
+    border-radius: var(--radius-s, 6px);
+    font-size: var(--text-base, 1rem);
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.kh-editor__save--secondary:hover {
+    background: var(--primary-ultra-light, #F5EFE6);
+}
+.kh-editor__save--secondary .material-symbols-outlined {
+    font-size: 20px;
+}
+@media (max-width: 480px) {
+    .kh-editor__save-cluster {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .kh-editor__save-cluster .cd-save-btn,
+    .kh-editor__save-cluster .kh-editor__save--secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ── Destructive modal variant (type-ELIMINAR) ─────────── */
+.cfd-confirm-modal--destructive {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.cfd-confirm-modal--destructive.is-open {
+    display: flex;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__panel {
+    position: relative;
+    background: var(--kh-surface, #FFFFFF);
+    color: var(--kh-on-surface, #1F1B16);
+    padding: var(--space-l, 2rem);
+    border-radius: var(--radius-m, 12px);
+    max-width: 480px;
+    width: calc(100% - 2rem);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__title {
+    margin: 0 0 var(--space-s, 1rem) 0;
+    font-size: var(--text-l, 1.25rem);
+    color: var(--kh-error, #B3261E);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__body {
+    margin: 0 0 var(--space-m, 1.5rem) 0;
+    color: var(--kh-on-surface-variant, #5F5953);
+    font-size: var(--text-base, 1rem);
+    line-height: 1.5;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__label {
+    display: block;
+    margin: 0 0 var(--space-xs, 0.5rem) 0;
+    font-size: var(--text-s, 0.875rem);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__input {
+    width: 100%;
+    padding: 0.65em 0.9em;
+    border: 1px solid var(--kh-outline, #C7C3BD);
+    border-radius: var(--radius-s, 6px);
+    font-family: inherit;
+    font-size: var(--text-base, 1rem);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: #fff;
+    color: inherit;
+    margin: 0 0 var(--space-m, 1.5rem) 0;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__input:focus {
+    outline: none;
+    border-color: var(--kh-error, #B3261E);
+    box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.15);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__actions {
+    display: flex;
+    gap: var(--space-s, 1rem);
+    justify-content: flex-end;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__btn {
+    padding: 0.65em 1.2em;
+    border-radius: var(--radius-s, 6px);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--text-base, 1rem);
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__btn--cancel {
+    background: var(--kh-surface-variant, #EDE7E0);
+    color: var(--kh-on-surface, #1F1B16);
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__btn--destroy {
+    background: var(--kh-error, #B3261E);
+    color: #fff;
+}
+.cfd-confirm-modal--destructive .cfd-confirm-modal__btn--destroy:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+@media (max-width: 480px) {
+    .cfd-confirm-modal--destructive .cfd-confirm-modal__actions {
+        flex-direction: column-reverse;
+    }
+    .cfd-confirm-modal--destructive .cfd-confirm-modal__btn {
+        width: 100%;
+        height: 48px;
+    }
+}
+
+/* ── Undo toast ──────────────────────────────────────────── */
+.cfd-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+    transform: translate(-50%, 1rem);
+    z-index: 10000;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s, 0.75rem);
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
+    background: var(--kh-on-surface, #1F1B16);
+    color: var(--kh-surface, #FFFFFF);
+    border-radius: 999px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    max-width: calc(100vw - 2rem);
+    opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    font-size: var(--text-s, 0.875rem);
+}
+.cfd-toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.cfd-toast.is-leaving {
+    opacity: 0;
+    transform: translate(-50%, 1rem);
+}
+.cfd-toast__icon {
+    font-size: 20px;
+    color: var(--accent, #C9A961);
+}
+.cfd-toast--success .cfd-toast__icon {
+    color: #6FCF97;
+}
+.cfd-toast__msg {
+    line-height: 1.3;
+}
+.cfd-toast__action {
+    background: transparent;
+    border: none;
+    color: var(--accent, #C9A961);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-s, 0.875rem);
+    cursor: pointer;
+    padding: 0.4em 0.6em;
+    border-radius: 999px;
+    font-family: inherit;
+    transition: background 0.15s ease;
+}
+.cfd-toast__action:hover {
+    background: rgba(255,255,255,0.08);
+}
+.cfd-toast__close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.25em 0.5em;
+    font-family: inherit;
+}
+.cfd-toast__close:hover {
+    opacity: 1;
+}
+@media (max-width: 480px) {
+    .cfd-toast {
+        left: 1rem;
+        right: 1rem;
+        transform: translateY(1rem);
+        width: auto;
+        max-width: none;
+    }
+    .cfd-toast.is-visible {
+        transform: translateY(0);
+    }
+    .cfd-toast.is-leaving {
+        transform: translateY(1rem);
     }
 }

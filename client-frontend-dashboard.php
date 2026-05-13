@@ -3,7 +3,7 @@
  * Plugin Name:       Client Frontend Dashboard
  * Plugin URI:        https://autentiweb.com/plugins/client-frontend-dashboard
  * Description:       A grandma-proof frontend dashboard for clients to edit pages, images, and CPT content — without ever touching wp-admin.
- * Version:           3.7.3
+ * Version:           3.8.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            AutentiWeb
@@ -17,7 +17,12 @@ if (!defined('ABSPATH')) {
 }
 
 // ─── Plugin constants ───────────────────────────────────────
-define('CFD_VERSION', '3.7.3');
+define('CFD_VERSION', '3.8.0');
+
+// Ensure WP auto-purges trash after 30 days. Client can override in wp-config.php.
+if (!defined('EMPTY_TRASH_DAYS')) {
+    define('EMPTY_TRASH_DAYS', 30);
+}
 define('CFD_PATH', plugin_dir_path(__FILE__));
 define('CFD_URL', plugin_dir_url(__FILE__));
 
@@ -60,6 +65,7 @@ require_once CFD_PATH . 'includes/cpt-chips.php';         // v3.7: chip registry
 require_once CFD_PATH . 'includes/dashboard-renderer.php';
 require_once CFD_PATH . 'includes/styles.php';
 require_once CFD_PATH . 'includes/login.php';
+require_once CFD_PATH . 'includes/rest.php';
 
 // ─── Admin settings page (only loads in wp-admin) ────────────
 if (is_admin()) {

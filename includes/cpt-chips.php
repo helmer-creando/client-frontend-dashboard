@@ -340,9 +340,7 @@ function cfd_render_chip_html( array $chip ): string {
 
     $icon_html = '';
     if ( ! empty( $chip['icon'] ) ) {
-        $icon_html = '<span class="material-symbols-outlined cfd-chip__icon kh-icon--filled" aria-hidden="true">'
-            . esc_html( $chip['icon'] )
-            . '</span>';
+        $icon_html = cfd_icon( $chip['icon'], 'cfd-chip__icon kh-icon--filled' );
     }
 
     return '<span class="' . $class . '">' . $icon_html . $label . '</span>';
@@ -391,9 +389,7 @@ function cfd_render_quick_toggles( array $toggles, WP_Post $post ): string {
             . ' aria-pressed="' . ( $active ? 'true' : 'false' ) . '"'
             . ' title="' . $aria_lbl . '"'
             . '>';
-        $html .= '<span class="material-symbols-outlined' . $icon_fill . '" aria-hidden="true">'
-            . esc_html( $icon )
-            . '</span>';
+        $html .= cfd_icon( $icon, trim( $icon_fill ) );
         $html .= '</button>';
     }
 
@@ -550,7 +546,7 @@ function cfd_render_active_filter_summary(
     $clear_url = add_query_arg( $clear_args, $dashboard_url );
 
     echo '<p class="cd-cpt-search-status">';
-    echo '  <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">filter_alt</span> ';
+    echo '  ' . cfd_icon( 'filter_alt' ) . ' ';
     echo '  Filtrando: <strong>' . esc_html( implode( ', ', $active_labels ) ) . '</strong>';
     echo '  &nbsp;<a href="' . esc_url( $clear_url ) . '" class="cd-cpt-search-clear">✕ Limpiar filtro</a>';
     echo '</p>';
