@@ -1310,15 +1310,15 @@
     border-radius: 0 0 var(--radius-l, 18px) var(--radius-l, 18px) !important;
 }
 
-/* Light save button on the dark sticky bar */
-.cd-acf-form .acf-form-submit .kh-editor__save,
-.cd-acf-form .acf-form-submit .cd-save-btn {
+/* Light save button on the dark sticky bar (primary only) */
+.cd-acf-form .acf-form-submit .kh-editor__save:not(.kh-editor__save--secondary),
+.cd-acf-form .acf-form-submit .cd-save-btn:not(.kh-editor__save--secondary) {
     background-color: var(--base-ultra-light) !important;
     color: var(--primary-ultra-dark) !important;
 }
 
-.cd-acf-form .acf-form-submit .kh-editor__save:hover,
-.cd-acf-form .acf-form-submit .cd-save-btn:hover {
+.cd-acf-form .acf-form-submit .kh-editor__save:not(.kh-editor__save--secondary):hover,
+.cd-acf-form .acf-form-submit .cd-save-btn:not(.kh-editor__save--secondary):hover {
     background-color: var(--white) !important;
     color: var(--primary-ultra-dark) !important;
 }
@@ -2851,7 +2851,11 @@
 }
 
 /* ── Kindred Hearth Save Button ────────────────────────────── */
-.kh-editor__save, .cd-save-btn, .kh-content__add {
+/* Excludes .kh-editor__save--secondary so the secondary save button
+   can render with transparent bg + solid border per its own rules. */
+.kh-editor__save:not(.kh-editor__save--secondary),
+.cd-save-btn:not(.kh-editor__save--secondary),
+.kh-content__add {
     background-color: var(--action, #8B7355) !important;
     color: var(--action-text, #fff) !important;
     border-radius: var(--radius-l, 99px) !important;
@@ -2870,7 +2874,8 @@
     height: 56px !important;
 }
 
-.kh-editor__save:hover, .kh-content__add:hover {
+.kh-editor__save:not(.kh-editor__save--secondary):hover,
+.kh-content__add:hover {
     filter: brightness(1.1);
     transform: translateY(-2px) !important;
     box-shadow: var(--kh-elevation-2) !important;
@@ -3727,8 +3732,19 @@
 }
 
 /* ── Draft state + "Oculto" pill ─────────────────────────── */
+/* Hidden cards: desaturated tint + reduced opacity so a non-techy
+   user instantly reads them as "not public". Opacity resets on
+   hover/focus so action buttons remain crisp when interacting. */
 .kh-content-item--draft {
     border-left: 3px solid var(--accent, #C9A961);
+    background-color: var(--kh-surface-variant, #EDE7E0);
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+}
+
+.kh-content-item--draft:hover,
+.kh-content-item--draft:focus-within {
+    opacity: 1;
 }
 
 .kh-content-item--draft .kh-content-item__title {
@@ -4393,11 +4409,14 @@ body.cfd-modal-open {
         text-align: center !important;
     }
 
-    /* Reset desktop top-padding for the actions zone on mobile. */
-    .kh-editor__header-row .kh-editor__header-actions {
-        padding-top: 0;
-    }
+}
 
+/* ── Header actions collapse to ⋯ menu at ≤1280px ───────
+   Three pill buttons (Ocultar/Duplicar/Eliminar) plus a long CPT
+   title overflow well above the L breakpoint because the editor
+   card is constrained by the sidebar. 1280px catches most laptop
+   widths where the card is too narrow for the buttons. */
+@media (max-width: 1280px) {
     .kh-editor__overflow-toggle {
         display: inline-flex;
     }
@@ -4443,6 +4462,11 @@ body.cfd-modal-open {
 
     .kh-editor__action--danger {
         border: none;
+    }
+
+    /* Reset desktop top-padding for the actions zone once collapsed. */
+    .kh-editor__header-row .kh-editor__header-actions {
+        padding-top: 0;
     }
 }
 
@@ -4571,18 +4595,47 @@ body.cfd-modal-open {
 .kh-content-item--trashed .kh-content-item__title {
     color: var(--kh-on-surface-variant, #5F5953);
 }
+
+/* Mobile: stack trashed-card info above actions so the "Eliminar
+   definitivamente"-sized buttons don't squeeze the info column to
+   a single-word-wide strip. */
+@media (max-width: 768px) {
+    .kh-content-item--trashed {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: var(--space-s, 0.75rem) !important;
+    }
+    .kh-content-item--trashed .kh-content-item__info {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .kh-content-item--trashed .kh-content-item__actions {
+        flex-wrap: wrap;
+        gap: var(--space-xs, 0.5rem);
+    }
+    .kh-content-item--trashed .kh-content-item__restore,
+    .kh-content-item--trashed .kh-content-item__delete-forever {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
 .kh-content-item__meta--purge {
     color: var(--accent, #C9A961);
     font-weight: 500;
 }
+/* Papelera action buttons — match the pill style of regular card
+   actions (.kh-content-item__edit, __delete) for visual consistency. */
 .kh-content-item__restore,
 .kh-content-item__delete-forever {
     display: inline-flex;
     align-items: center;
-    gap: 0.4em;
-    padding: 0.5em 0.9em;
-    border-radius: var(--radius-s, 6px);
-    font-size: var(--text-s, 0.875rem);
+    justify-content: center;
+    gap: 4px;
+    height: 44px;
+    padding: 0 1rem;
+    border-radius: 100px;
+    font-weight: 500;
+    font-size: var(--text-m, 1rem);
     text-decoration: none;
     border: 1px solid transparent;
     cursor: pointer;
@@ -4590,12 +4643,12 @@ body.cfd-modal-open {
     font-family: inherit;
 }
 .kh-content-item__restore {
-    background: var(--primary-ultra-light, #F5EFE6);
-    color: var(--primary-dark, #4A3F2C);
+    background: var(--kh-secondary-container, #E6DCD1);
+    color: var(--kh-on-secondary-container, #221C16);
     border-color: transparent;
 }
 .kh-content-item__restore:hover {
-    background: var(--primary-light, #E8DCC4);
+    background: var(--kh-primary-container, #E6E1DC);
 }
 .kh-content-item__delete-forever {
     background: transparent;
@@ -4608,32 +4661,54 @@ body.cfd-modal-open {
 }
 .kh-content-item__restore .material-symbols-outlined,
 .kh-content-item__delete-forever .material-symbols-outlined {
-    font-size: 18px;
+    font-size: 20px;
 }
 
-/* ── Save cluster (primary + secondary save button) ──────── */
+/* ── Save cluster (primary + secondary save button + hint) ──
+   Buttons in one row, centered. Hint always on its own line below,
+   also centered. Cluster claims full width of the save bar so the
+   parent's flex-end alignment doesn't shrink-wrap the cluster and
+   cause buttons to wrap individually. At S (≤480px), buttons stack. */
 .kh-editor__save-cluster {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-xs, 0.5rem);
     align-items: center;
+    justify-content: center;
+    width: 100%;
 }
+.kh-editor__save-cluster .kh-editor__save-hint {
+    flex: 0 0 100%;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    text-align: center;
+    max-width: none;
+}
+/* Outlined pill that mirrors the primary save button's geometry,
+   reading clearly on the dark sticky bar. */
 .kh-editor__save--secondary {
     background: transparent;
-    color: var(--primary-dark, #4A3F2C);
-    border: 1px solid var(--primary-dark, #4A3F2C);
+    color: var(--primary-ultra-light, #F5EFE6);
+    border: 1px solid var(--primary-ultra-light, #F5EFE6);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.4em;
-    padding: 0.65em 1.1em;
-    border-radius: var(--radius-s, 6px);
-    font-size: var(--text-base, 1rem);
+    justify-content: center;
+    gap: var(--space-xs, 0.5rem);
+    padding: var(--space-s, 0.75rem) var(--space-l, 2rem);
+    border-radius: var(--radius-l, 99px);
+    height: 56px;
+    font-size: var(--text-m, 1rem);
+    font-weight: 600;
     font-family: inherit;
-    transition: background 0.15s ease, color 0.15s ease;
+    line-height: 1;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .kh-editor__save--secondary:hover {
-    background: var(--primary-ultra-light, #F5EFE6);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--white, #fff);
+    border-color: var(--white, #fff);
 }
 .kh-editor__save--secondary .material-symbols-outlined {
     font-size: 20px;
@@ -4647,6 +4722,9 @@ body.cfd-modal-open {
     .kh-editor__save-cluster .kh-editor__save--secondary {
         width: 100%;
         justify-content: center;
+    }
+    .kh-editor__save-cluster .kh-editor__save-hint {
+        text-align: center;
     }
 }
 

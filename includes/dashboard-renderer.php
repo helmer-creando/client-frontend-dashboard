@@ -1022,7 +1022,12 @@ function cfd_render_view_router(): string
 
         case 'manage':
             $cpt_slug = sanitize_key($_GET['manage']);
-            cfd_render_cpt_list($cpt_slug, $user);
+            $sub_view = isset($_GET['view']) ? sanitize_key($_GET['view']) : '';
+            if ($sub_view === 'trash') {
+                cfd_render_cpt_trash($cpt_slug, $user);
+            } else {
+                cfd_render_cpt_list($cpt_slug, $user);
+            }
             break;
 
         case 'create':
@@ -1829,8 +1834,8 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     if ($can_edit) {
         $submit_html .= '<button type="submit" name="cfd_save_as" value="' . esc_attr($secondary_intent) . '" class="kh-editor__save kh-editor__save--secondary">' . cfd_icon($secondary_icon) . ' ' . esc_html($secondary_label) . '</button>';
     }
-    $submit_html .= '</div>';
     $submit_html .= '<span class="kh-editor__save-hint">' . esc_html($save_hint) . '</span>';
+    $submit_html .= '</div>';
 
     acf_form(array(
         'post_id' => $post_id,
@@ -1885,8 +1890,8 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
     $submit_html = '<div class="kh-editor__save-cluster">';
     $submit_html .= '<button type="submit" class="cd-save-btn kh-editor__save">' . cfd_icon('auto_fix') . ' Crear y publicar</button>';
     $submit_html .= '<button type="submit" name="cfd_save_as" value="draft" class="kh-editor__save kh-editor__save--secondary">' . cfd_icon('visibility_off') . ' Guardar borrador</button>';
-    $submit_html .= '</div>';
     $submit_html .= '<span class="kh-editor__save-hint">Publica para que aparezca online, o guarda como borrador para terminar después.</span>';
+    $submit_html .= '</div>';
 
     acf_form(array(
         'post_id' => 'new_post',
@@ -2021,7 +2026,7 @@ function cfd_render_cpt_trash(string $cpt_slug, WP_User $user): void
         if ($can_destroy) {
             $nonce = wp_create_nonce('cfd_delete_forever_' . $p->ID);
             echo '    <button type="button" class="kh-content-item__delete-forever" data-cfd-delete-forever data-id="' . esc_attr($p->ID) . '" data-title="' . esc_attr($p->post_title) . '" data-nonce="' . esc_attr($nonce) . '" aria-label="' . esc_attr('Eliminar definitivamente ' . $p->post_title) . '">';
-            echo '      ' . cfd_icon('delete_forever') . ' Eliminar definitivamente';
+            echo '      ' . cfd_icon('delete_forever') . ' Eliminar';
             echo '    </button>';
         }
         echo '  </div>';

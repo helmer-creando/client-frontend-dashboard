@@ -804,7 +804,7 @@ add_filter('bricks/query/loop_object_type', 'cfd_nav_loop_object_type', 10, 3);
 
 function cfd_nav_loop_object_type($object_type, $loop_object, $query)
 {
-    if ($query->object_type !== 'cfd_nav') {
+    if (!is_object($query) || ($query->object_type ?? '') !== 'cfd_nav') {
         return $object_type;
     }
     return 'cfd_nav';
