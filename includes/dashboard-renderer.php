@@ -593,6 +593,7 @@ function cfd_render_dashboard(): string
     $action = isset($_GET['edit']) ? sanitize_key($_GET['edit']) : '';
     $manage = isset($_GET['manage']) ? sanitize_key($_GET['manage']) : '';
     $create = isset($_GET['create']) ? sanitize_key($_GET['create']) : '';
+    $options = isset($_GET['options']) ? sanitize_key($_GET['options']) : '';
     $post_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 
     ob_start();
@@ -615,6 +616,9 @@ function cfd_render_dashboard(): string
     }
     elseif ($create && in_array($create, $config['manageable_cpts'], true)) {
         cfd_render_cpt_creator($create, $user);
+    }
+    elseif ($options && cfd_get_options_page($options)) {
+        cfd_render_options_page($options);
     }
     else {
         cfd_render_dashboard_home($user, $config);
@@ -683,6 +687,9 @@ function cfd_render_sidebar_nav(): string
     elseif ($view === 'create' && isset($_GET['create'])) {
         $active_slug = sanitize_key($_GET['create']);
     }
+    elseif ($view === 'options' && isset($_GET['options'])) {
+        $active_slug = 'options:' . sanitize_key($_GET['options']);
+    }
 
     ob_start();
 
@@ -728,6 +735,28 @@ function cfd_render_sidebar_nav(): string
             echo '    <span class="cfd-sidebar-nav__label">' . esc_html($cpt_obj->labels->name) . '</span>';
             echo '  </a>';
             echo '</li>';
+        }
+    }
+
+    // ── 4. Settings (ACF options pages, opt-in via cfd_options_pages) ──
+    // Renders nothing at all when no options pages are registered or the
+    // current user can't access any — no orphan heading, no empty wrapper.
+    if (function_exists('cfd_get_accessible_options_pages')) {
+        $options_pages = cfd_get_accessible_options_pages();
+        if (!empty($options_pages)) {
+            echo '<li class="cfd-sidebar-nav__divider" aria-hidden="true"></li>';
+
+            foreach ($options_pages as $opt_key => $opt_page) {
+                $opt_url = add_query_arg(array('options' => $opt_key), $dashboard_url);
+                $active_class = ($active_slug === 'options:' . $opt_key) ? ' is-active' : '';
+
+                echo '<li class="cfd-sidebar-nav__item' . $active_class . '">';
+                echo '  <a href="' . esc_url($opt_url) . '" class="cfd-sidebar-nav__link">';
+                echo '    <span class="dashicons ' . esc_attr($opt_page['icon']) . ' cfd-sidebar-nav__icon"></span>';
+                echo '    <span class="cfd-sidebar-nav__label">' . esc_html($opt_page['label']) . '</span>';
+                echo '  </a>';
+                echo '</li>';
+            }
         }
     }
 
@@ -920,6 +949,54 @@ function cfd_render_cpt_cards_shortcode(): string
 }
 
 /**
+ * [cfd_options_cards] — Renders a card grid for editable ACF options pages.
+ *
+ * One card per options page the current user can access (enabled in
+ * Settings → Client Dashboard, respecting per-user restrictions). Each
+ * card links to that page's editor (?options=KEY). Matches the page/CPT
+ * card style so it sits naturally on the dashboard home view.
+ *
+ * Renders nothing when the user can access no options pages — so the
+ * surrounding Bricks headline can be hidden with the same condition.
+ *
+ * Usage in Bricks: Add a Shortcode element with [cfd_options_cards]
+ * inside the "Home View" section, under your own headline.
+ */
+add_shortcode('cfd_options_cards', 'cfd_render_options_cards_shortcode');
+
+function cfd_render_options_cards_shortcode(): string
+{
+    if (!is_user_logged_in() || !function_exists('cfd_get_accessible_options_pages')) {
+        return '';
+    }
+
+    $options_pages = cfd_get_accessible_options_pages();
+    if (empty($options_pages)) {
+        return '';
+    }
+
+    $dashboard_url = cfd_get_dashboard_url();
+
+    ob_start();
+
+    echo '<div class="cd-page-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">';
+
+    foreach ($options_pages as $opt_key => $opt_page) {
+        $opt_url = add_query_arg(array('options' => $opt_key), $dashboard_url);
+
+        echo '<a href="' . esc_url($opt_url) . '" class="cd-page-card">';
+        echo '  <span class="cd-page-card__icon"><span class="dashicons ' . esc_attr($opt_page['icon']) . '"></span></span>';
+        echo '  <span class="cd-page-card__title">' . esc_html($opt_page['label']) . '</span>';
+        echo '  <span class="cd-page-card__hint">Editar →</span>';
+        echo '</a>';
+    }
+
+    echo '</div>';
+
+    return ob_get_clean();
+}
+
+/**
  * [cfd_quick_links] — Renders the Quick Access Links card grid.
  *
  * Outputs admin-configured shortcut cards that link to external
@@ -1033,6 +1110,10 @@ function cfd_render_view_router(): string
         case 'create':
             $cpt_slug = sanitize_key($_GET['create']);
             cfd_render_cpt_creator($cpt_slug, $user);
+            break;
+
+        case 'options':
+            cfd_render_options_page(sanitize_key($_GET['options']));
             break;
     }
 
@@ -1840,7 +1921,11 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     acf_form(array(
         'post_id' => $post_id,
         'post_title' => true,
-        'post_content' => false,
+        // Native WordPress body editor (classic TinyMCE), shown only when the
+        // CPT was registered with `editor` support. Read straight from core so
+        // toggling "Supports → Editor" in ACF's CPT UI controls it — no plugin
+        // config needed. CPTs without editor support are byte-identical to before.
+        'post_content' => post_type_supports($cpt_slug, 'editor'),
         'field_groups' => $field_groups,
         'submit_value' => 'Guardar cambios',
         'updated_message' => false,
@@ -1900,7 +1985,9 @@ function cfd_render_cpt_creator(string $cpt_slug, WP_User $user): void
             'post_status' => 'publish',
         ),
         'post_title' => true,
-        'post_content' => false,
+        // Native body editor on create, gated on the CPT's `editor` support.
+        // See the matching note in cfd_render_cpt_editor().
+        'post_content' => post_type_supports($cpt_slug, 'editor'),
         'submit_value' => 'Crear y publicar',
         'updated_message' => false,
         'return' => $return_url,

@@ -336,6 +336,7 @@ function cfd_get_dashboard_view(): string
     $edit = isset($_GET['edit']) ? sanitize_key($_GET['edit']) : '';
     $manage = isset($_GET['manage']) ? sanitize_key($_GET['manage']) : '';
     $create = isset($_GET['create']) ? sanitize_key($_GET['create']) : '';
+    $options = isset($_GET['options']) ? sanitize_key($_GET['options']) : '';
     $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 
     if ($edit === 'page' && $id > 0) {
@@ -349,6 +350,9 @@ function cfd_get_dashboard_view(): string
     }
     elseif ($create && in_array($create, $config['manageable_cpts'], true)) {
         $view = 'create';
+    }
+    elseif ($options !== '' && function_exists('cfd_get_options_page') && cfd_get_options_page($options)) {
+        $view = 'options';
     }
     else {
         $view = 'home';

@@ -664,13 +664,16 @@ function cfd_render_user_access_fields( WP_User $user ): void {
     $restrict      = get_user_meta( $user->ID, 'cfd_restrict_access', true ) === '1';
     $user_cpts     = get_user_meta( $user->ID, 'cfd_user_cpts', true );
     $user_pages    = get_user_meta( $user->ID, 'cfd_user_pages', true );
+    $user_options  = get_user_meta( $user->ID, 'cfd_user_options_pages', true );
 
-    if ( ! is_array( $user_cpts ) )  { $user_cpts  = array(); }
-    if ( ! is_array( $user_pages ) ) { $user_pages = array(); }
+    if ( ! is_array( $user_cpts ) )    { $user_cpts    = array(); }
+    if ( ! is_array( $user_pages ) )   { $user_pages   = array(); }
+    if ( ! is_array( $user_options ) ) { $user_options = array(); }
 
-    // Get the pool of available CPTs and pages.
-    $available_cpts = $config['manageable_cpts'];
-    $editable_pages = cfd_get_editable_pages( $config );
+    // Get the pool of available CPTs, pages, and options pages.
+    $available_cpts    = $config['manageable_cpts'];
+    $editable_pages    = cfd_get_editable_pages( $config );
+    $available_options = function_exists( 'cfd_get_options_pages' ) ? cfd_get_options_pages() : array();
     ?>
 
     <h2>Client Dashboard Access</h2>
@@ -762,6 +765,31 @@ function cfd_render_user_access_fields( WP_User $user ): void {
                 <?php endif; ?>
             </td>
         </tr>
+
+        <?php if ( ! empty( $available_options ) ) : ?>
+        <!-- Options page checkboxes (only shown when the site registers any) -->
+        <tr class="cfd-restrict-row" <?php echo ! $restrict ? 'style="display:none;"' : ''; ?>>
+            <th scope="row">Allowed Settings</th>
+            <td>
+                <fieldset>
+                    <?php foreach ( $available_options as $opt_key => $opt_page ) :
+                        $checked = in_array( $opt_key, $user_options, true );
+                    ?>
+                    <label style="display: block; margin-bottom: 0.4em;">
+                        <input
+                            type="checkbox"
+                            name="cfd_user_options_pages[]"
+                            value="<?php echo esc_attr( $opt_key ); ?>"
+                            <?php checked( $checked ); ?>
+                        />
+                        <strong><?php echo esc_html( $opt_page['label'] ); ?></strong>
+                        <code style="margin-left: 0.3em; color: #888;"><?php echo esc_html( $opt_key ); ?></code>
+                    </label>
+                    <?php endforeach; ?>
+                </fieldset>
+            </td>
+        </tr>
+        <?php endif; ?>
     </table>
 
     <script>
@@ -823,5 +851,13 @@ function cfd_save_user_access_fields( int $user_id ): void {
         $pages = array();
     }
     update_user_meta( $user_id, 'cfd_user_pages', $pages );
+
+    // ── Options pages ──
+    if ( isset( $_POST['cfd_user_options_pages'] ) && is_array( $_POST['cfd_user_options_pages'] ) ) {
+        $options = array_map( 'sanitize_key', $_POST['cfd_user_options_pages'] );
+    } else {
+        $options = array();
+    }
+    update_user_meta( $user_id, 'cfd_user_options_pages', $options );
 }
 

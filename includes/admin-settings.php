@@ -83,6 +83,15 @@ function cfd_sanitize_settings($input): array
         $clean['manageable_cpts'] = array();
     }
 
+    // ACF Options Pages — array of detected page keys to expose in the
+    // dashboard. Unchecked = empty array (valid: means no options pages).
+    if (isset($input['options_pages']) && is_array($input['options_pages'])) {
+        $clean['options_pages'] = array_map('sanitize_key', $input['options_pages']);
+    }
+    else {
+        $clean['options_pages'] = array();
+    }
+
     // Accent color source — ACSS palette name or 'custom'.
     $valid_sources = array( '', 'primary', 'secondary', 'accent', 'custom' );
     if (isset($input['accent_source'])) {
@@ -173,6 +182,12 @@ function cfd_render_settings_page(): void
     $db_settings = get_option('cfd_settings', array());
     $available_cpts = cfd_detect_available_cpts();
     $selected_cpts = $config['manageable_cpts'];
+
+    // ACF Options Pages: auto-detected, ticked to expose in the dashboard.
+    $detected_options = function_exists('cfd_detect_options_pages') ? cfd_detect_options_pages() : array();
+    $selected_options = isset($db_settings['options_pages']) && is_array($db_settings['options_pages'])
+        ? $db_settings['options_pages']
+        : array();
 
     // Check if settings have been saved at least once.
     $has_saved = !empty($db_settings);
@@ -514,6 +529,67 @@ function cfd_render_settings_page(): void
                             <p class="description" style="margin-top: 1em;">
                                 Saving will automatically update the <code>site_editor</code>
                                 role capabilities to match your selection.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            <?php
+    endif; ?>
+
+            <!-- ── Manageable Settings (ACF Options Pages) ────── -->
+            <h2>Manageable Settings</h2>
+            <p>
+                Select which ACF <strong>Options Pages</strong> clients can edit from
+                the frontend dashboard. Use these for site-wide content that isn't tied
+                to a single post — archive intro copy, featured selections, contact info,
+                hero text, etc.
+            </p>
+            <div class="notice notice-info inline" style="margin: 0.5em 0 1em;">
+                <p>
+                    💡 Pages are detected automatically from ACF. Per-user access is set
+                    under <strong>Users → [user] → Edit → Client Dashboard Access</strong>.
+                </p>
+            </div>
+
+            <?php if (empty($detected_options)): ?>
+                <div class="notice notice-warning inline">
+                    <p>
+                        No ACF Options Pages detected. Create one in
+                        <strong>ACF → Options Pages</strong>, attach a field group to it
+                        (Location: <em>Options Page is equal to …</em>), then return here.
+                    </p>
+                </div>
+            <?php else: ?>
+                <table class="form-table" role="presentation">
+                    <tr>
+                        <th scope="row">Available Options Pages</th>
+                        <td>
+                            <fieldset>
+                                <?php foreach ($detected_options as $opt_key => $opt_page):
+            $checked = in_array($opt_key, $selected_options, true);
+            $group_count = count($opt_page['field_groups']);
+?>
+                                <label style="display: block; margin-bottom: 0.5em;">
+                                    <input
+                                        type="checkbox"
+                                        name="cfd_settings[options_pages][]"
+                                        value="<?php echo esc_attr($opt_key); ?>"
+                                        <?php checked($checked); ?>
+                                    />
+                                    <strong><?php echo esc_html($opt_page['label']); ?></strong>
+                                    <code style="margin-left: 0.4em; color: #888;"><?php echo esc_html($opt_key); ?></code>
+                                    <?php if ($group_count === 0): ?>
+                                        <span style="color: #b32d2e; margin-left: 0.4em;">⚠ no field group attached</span>
+                                    <?php else: ?>
+                                        <span style="color: #888; margin-left: 0.4em;"><?php echo esc_html(sprintf(_n('%d field group', '%d field groups', $group_count), $group_count)); ?></span>
+                                    <?php endif; ?>
+                                </label>
+                                <?php
+        endforeach; ?>
+                            </fieldset>
+                            <p class="description" style="margin-top: 1em;">
+                                Pages without a field group will show an empty form — attach
+                                a field group in ACF first.
                             </p>
                         </td>
                     </tr>
