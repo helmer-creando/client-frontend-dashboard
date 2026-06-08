@@ -43,7 +43,8 @@ The biggest change in v3.0 is moving away from the plugin dictating the entire H
 ### Core Composable Shortcodes (v3.0)
 Instead of one massive `[client_dashboard]` shortcode, layout is now handled by Bricks dropping these pieces:
 - `[cfd_sidebar_nav]` — Dynamic sidebar nav (Inicio + manageable CPTs with Dashicons). Also available as a Bricks Query Loop (`CFD Sidebar Nav` type).
-- `[cfd_view_router]` — Main content area, dynamically loads Dashboard Home, CPT List, CPT Editor, or CPT Creator based on URL params (`?manage=`, `?edit=`, `?create=`).
+- `[cfd_view_router]` — Main content area, dynamically loads Dashboard Home, CPT List, CPT Editor, CPT Creator, or Options Page editor based on URL params (`?manage=`, `?edit=`, `?create=`, `?options=`).
+- `[cfd_options_cards]` — (v3.9) Card grid for editable ACF Options Pages the user can access. Place under a Bricks-authored headline on the home view; renders nothing when none are accessible.
 - `[cfd_client_logo max_width="150px"]` — Renders the custom client logo uploaded via the CFD settings page.
 - `[cd_login_form]` — Smart login/lost-password/reset-password form.
 - `[cd_logout_url]` — Outputs the logout URL for Bricks link fields.
@@ -62,9 +63,10 @@ client-frontend-dashboard/
 │   ├── config.php                   ← Config, DB merge, CPT detection, Per-user overrides, Bricks dynamic tags
 │   ├── roles-and-access.php         ← roles, redirects, per-user profile UI & save handlers, caching
 │   ├── dashboard-renderer.php       ← Shortcodes, ACF form CRUD, Per-user access guards, renderer
+│   ├── options-pages.php            ← (v3.9) ACF Options Page detection, access, frontend editor
 │   ├── login.php                    ← [cd_login_form] shortcode, auth handler, logout, password reset
 │   ├── styles.php                   ← Enqueues dashboard.css (just the loader)
-│   └── admin-settings.php           ← Settings → Client Dashboard (CPT toggles, slugs, logo upload)
+│   └── admin-settings.php           ← Settings → Client Dashboard (CPT + options-page toggles, slugs, logo upload)
 ├── assets/
 │   ├── css/
 │   │   ├── dashboard.css            ← ~1500+ lines, full dashboard styling with ACSS vars, BEM naming
@@ -93,6 +95,7 @@ client-frontend-dashboard/
 - `/mi-espacio/?manage=retreats&orderby=title&buscar=yoga&pag=2` → Filtered/sorted/paginated
 - `/mi-espacio/?edit=retreats&id=45` → Edit retreat 45
 - `/mi-espacio/?create=retreats` → New retreat
+- `/mi-espacio/?options=featured-content` → Edit the "Featured Content" ACF Options Page (v3.9)
 
 ### Login
 - `/capitan/` → Login form
@@ -185,6 +188,11 @@ Uses **plugin-update-checker** (YahnisElsts v5.6) in **GitHub Releases mode**:
 | **3.4.3** | Fix Bricks builder crash - add cfd_home_view handler + safety guards |
 | **3.4.4** | Debug release - temporarily disabled Bricks conditions |
 | **3.4.5** | Re-enable native Bricks conditions, keep echo whitelist disabled |
+| **3.6.0** | Phase 1 content management foundation |
+| **3.7.x** | CPT chip registry + engine, auto-detect taxonomy chips, admin featured-toggle UI, chip polish |
+| **3.8.0** | Phase 2 — hide/show, drafts, papelera, self-hosted Material Symbols icons |
+| **3.8.1** | Phase 2 polish — trash routing, save bar, papelera responsive, PHP warning |
+| **3.9.0** | ACF Options Page editing (auto-detect + settings toggle, sidebar/cards, per-user allowlist) + native body editor opt-in via `post_type_supports('editor')`. See [docs/feature-plan-v3.9.md](docs/feature-plan-v3.9.md) |
 
 ---
 
