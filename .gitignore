@@ -5,6 +5,7 @@
 # ── Editors / IDEs ──
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -20,5 +21,10 @@ Desktop.ini
 stitch-design/
 
 # ── Dependencies (future-proofing) ──
+# Anchor to repo root so this only matches Composer's /vendor/,
+# NOT bundled front-end libs in assets/js/vendor/ (e.g. iro.min.js).
 node_modules/
-vendor/
+/vendor/
+
+# ACSS docs — symlinked dev reference, never ship to clients
+docs/acss-ref

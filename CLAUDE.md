@@ -95,6 +95,14 @@ Short version (full doc in [docs/local-dev.md](docs/local-dev.md)):
 
 Never release without smoke-testing on Local first.
 
+**Releases ship as the GitHub *source archive*** — we don't upload a built zip
+asset, so plugin-update-checker pulls the tag's `git archive`. Consequence:
+**anything `.gitignore`d silently never reaches client sites.** This bit us in
+v3.9.1 — a broad `vendor/` rule swallowed bundled libs (`assets/js/vendor/iro.min.js`
+→ console 404; `plugin-update-checker/vendor/` → broken changelog modal). The
+ignore is now anchored to `/vendor/` (Composer only). When adding any bundled
+runtime asset, confirm `git check-ignore <path>` is empty before releasing.
+
 ## Memory
 
 Helmer's preferences and prior-session context live in `~/.claude/projects/`

@@ -210,19 +210,35 @@
 }
 
 /* ── Back link ────────────────────────────────────────── */
+/* Mirrors .kh-editor__action geometry exactly so the back button reads as part
+   of the same button family (Ocultar / Duplicar / Eliminar). */
 .cd-back-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 6px;
+    height: 44px;
     margin-bottom: var(--space-m, 1.5rem);
-    color: var(--primary-dark, #5A4535);
+    padding: 0 1rem;
+    background-color: transparent;
+    border: 1px solid var(--kh-outline-variant, #CAC4BB);
+    border-radius: 100px;
+    color: var(--kh-on-surface, #242424);
     text-decoration: none;
-    font-size: var(--text-s, 0.82rem);
-    transition: color 0.2s;
+    font-size: var(--text-m, 1rem);
+    font-weight: 500;
+    line-height: 1;
+    font-family: inherit;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.cd-back-link .material-symbols-outlined {
+    font-size: 20px;
 }
 
 .cd-back-link:hover {
-    color: var(--primary, #8B7355);
+    background-color: var(--kh-surface-variant, #EBE6DF);
+    border-color: var(--kh-outline, #7F766C);
+    color: var(--kh-on-surface, #242424);
 }
 
 .cd-back-link--bottom {
@@ -1233,6 +1249,30 @@
     border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Alternating row tint so multi-field items read as distinct blocks instead
+   of blending into one another (the dividing line between items was too
+   subtle when each item has several sub-fields). */
+/* Tint even rows. This is ACF's table (-row) layout, so the <tr> tint is
+   hidden behind the cells' own fills — paint the <td> cells directly so the
+   whole row (number gutter + label column + inputs) carries one colour. */
+.cd-acf-form .acf-repeater .acf-row:nth-child(even),
+.cd-acf-form .acf-repeater.-row > table > tbody > tr.acf-row:nth-child(even) > td {
+    background: var(--primary-ultra-light, #FAF7F2) !important;
+}
+
+/* ACF's -left layout draws the gray label-column fill with a .acf-field::before
+   pseudo-element (NOT the .acf-label background — that's why earlier attempts
+   missed). Knock the pseudo's fill out so the field-name column inherits the
+   row tint too. Label background cleared as well for good measure. */
+.cd-acf-form .acf-repeater .acf-fields.-left > .acf-field::before {
+    background: transparent !important;
+}
+
+.cd-acf-form .acf-repeater .acf-row .acf-label,
+.cd-acf-form .acf-repeater .acf-row .acf-fields.-left .acf-label {
+    background: transparent !important;
+}
+
 .cd-acf-form .acf-repeater .acf-row-handle {
     background: transparent !important;
     color: var(--text-dark-muted, #B8AFA7) !important;
@@ -1809,6 +1849,18 @@
     padding: var(--space-xs, 0.5rem) !important;
 }
 
+/* NOTE: the gallery's "extra whitespace" is ACF's fixed inline body height
+   (default 400px) over an absolute-positioned attachments grid. Shrinking it in
+   CSS collapses the whole field, so the height is sized to content in JS
+   instead — see fitGalleries() in acf-fields.js. Don't add min-height/height/
+   position overrides here. */
+
+/* Hide the never-used "Bulk actions" dropdown (ACF's .acf-gallery-sort) in the
+   gallery toolbar. */
+.cd-acf-form .acf-gallery .acf-gallery-toolbar select {
+    display: none !important;
+}
+
 /* ── oEmbed ─────────────────────────────────────────── */
 .cd-acf-form .acf-oembed {
     border: 1px solid rgba(0, 0, 0, 0.06) !important;
@@ -1955,8 +2007,20 @@
     min-height: 44px !important;
 }
 
+/* Show ~6 items before scrolling (was ~3). The visible row count is capped by
+   the parent .selection height, so lift that too — not just the .list. */
+.cd-acf-form .acf-relationship .selection {
+    height: 300px !important;
+    min-height: 300px !important;
+}
+
+.cd-acf-form .acf-relationship .selection .choices,
+.cd-acf-form .acf-relationship .selection .values {
+    height: 300px !important;
+}
+
 .cd-acf-form .acf-relationship .list {
-    max-height: 280px !important;
+    max-height: 300px !important;
 }
 
 .cd-acf-form .acf-relationship .list li {
@@ -2042,6 +2106,95 @@
 .cd-acf-form .acf-icon-picker .acf-icon-picker-grid button.-selected {
     background: color-mix(in srgb, var(--primary, #8B7355) 15%, transparent) !important;
     border-color: var(--primary, #6B5540) !important;
+}
+
+/* ── Icon Picker · Media Library tab ────────────────────
+   This is the tab clients actually use (they upload SVG icons). The selected
+   icon is an <img src="*.svg"> — an image element, so its black fill CANNOT be
+   recoloured with CSS. ACF ships the preview on a near-black background, so a
+   black icon disappears into a tiny dark square. Fix = a LIGHT preview panel
+   so the (almost always black) icon reads clearly, plus a bigger target and a
+   button that matches the plugin instead of WordPress blue. */
+
+/* Drop the redundant outer frame for the media-library variant: the preview
+   square and the pill button already provide all the structure, so the wrapping
+   box just doubled up the border and made the empty-state button kiss its edge.
+   Scoped via :has() so the (unused) Dashicons grid tab keeps its container. */
+.cd-acf-form .acf-icon-picker:has(.acf-icon-picker-media-library) {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+.cd-acf-form .acf-icon-picker-media-library {
+    gap: var(--space-s, 0.85rem) !important;
+    padding: 0 !important;
+    background: transparent !important;
+    /* ACF core puts a 1px #8c8f94 border on THIS element (not the outer
+       .acf-icon-picker) — that's the redundant box. The preview square + pill
+       button carry the structure, so drop it. */
+    border: none !important;
+}
+
+/* The preview button (the square) */
+.cd-acf-form .acf-icon-picker-media-library-preview {
+    width: 64px !important;
+    height: 64px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius-s, 8px) !important;
+    overflow: hidden !important;
+    cursor: pointer !important;
+    flex: 0 0 auto !important;
+}
+
+/* Light panel behind the icon so a black SVG is visible */
+.cd-acf-form .acf-icon-picker-media-library-preview-img {
+    width: 100% !important;
+    height: 100% !important;
+    background: var(--kh-surface-variant, #F0EDE8) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+
+.cd-acf-form .acf-icon-picker-media-library-preview-img img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
+
+/* "Browse Media Library" → plugin outline button (was WP blue #0783BE) */
+.cd-acf-form .acf-icon-picker-media-library-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: calc(var(--space-xs, 0.5rem) * 0.5) !important;
+    min-height: 44px !important;
+    padding: calc(var(--space-xs, 0.5rem) * 0.6) var(--space-s, 0.85rem) !important;
+    background: transparent !important;
+    border: 1.5px solid var(--primary-dark, #5A4535) !important;
+    border-radius: 100px !important;
+    color: var(--primary-dark, #5A4535) !important;
+    font-family: inherit !important;
+    font-size: var(--text-s, 0.85rem) !important;
+    font-weight: 500 !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s !important;
+}
+
+.cd-acf-form .acf-icon-picker-media-library-button:hover {
+    background: var(--primary-ultra-light, #FAF7F2) !important;
+    color: var(--primary-ultra-dark, #2C2218) !important;
+    border-color: var(--primary-ultra-dark, #2C2218) !important;
+}
+
+.cd-acf-form .acf-icon-picker-media-library-button-icon {
+    color: inherit !important;
 }
 
 /* ── Layout Fields: Tab ─────────────────────────────── */
@@ -3706,6 +3859,18 @@
     line-height: 1.3;
     font-weight: 700;
     margin: 0;
+}
+
+/* Title is a real link so clicking the name opens the editor (the stretched
+   card link sits below __info in the stacking context and never receives the
+   click). Inherit type; reveal interactivity on hover. */
+.kh-content-item__title a {
+    color: inherit;
+    text-decoration: none;
+}
+.kh-content-item__title a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .kh-content-item__heading {

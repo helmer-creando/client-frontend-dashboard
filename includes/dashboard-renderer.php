@@ -1659,7 +1659,9 @@ function cfd_render_cpt_list(string $cpt_slug, WP_User $user): void
 
             echo '  <div class="kh-content-item__info">';
             echo '    <div class="kh-content-item__heading">';
-            echo '      <h3 class="kh-content-item__title">' . esc_html($p->post_title) . '</h3>';
+            // Title is its own link (above the stretched card link via the
+            // __info stacking context) so clicking the name navigates too.
+            echo '      <h3 class="kh-content-item__title"><a href="' . esc_url($edit_url) . '">' . esc_html($p->post_title) . '</a></h3>';
             if ($is_draft) {
                 echo '      <span class="kh-content-item__status">Oculto</span>';
             }
@@ -1894,27 +1896,19 @@ function cfd_render_cpt_editor(string $cpt_slug, int $post_id, WP_User $user): v
     do_action( 'cfd_editor_before_form', $post, $cpt_slug );
 
     // Save button cluster:
-    //   - Primary "Guardar cambios" stays as ACF's submit (no status change).
-    //   - Secondary button posts cfd_save_as=draft|publish; cfd_apply_save_intent()
-    //     reads that on acf/save_post and flips post_status accordingly.
-    //   - Microcopy adapts to current state.
+    //   - Single "Guardar cambios" submit (no status change).
+    //   - Visibility is handled separately by the header "Ocultar / Mostrar"
+    //     action, so the old "Guardar y ocultar" secondary button was removed
+    //     in v3.10 — it duplicated that toggle and confused users.
+    //   - Microcopy reassures about what saving does, adapting to current state.
     if ($is_hidden) {
-        $secondary_intent = 'publish';
-        $secondary_label  = 'Guardar y publicar';
-        $secondary_icon   = 'visibility';
-        $save_hint        = 'Guarda para seguir trabajando, o publica para que aparezca online.';
+        $save_hint = 'Guarda tus cambios. Esta página está oculta y no aparece online.';
     } else {
-        $secondary_intent = 'draft';
-        $secondary_label  = 'Guardar y ocultar';
-        $secondary_icon   = 'visibility_off';
-        $save_hint        = 'Guarda para actualizar, u oculta para que deje de aparecer online.';
+        $save_hint = 'Los cambios se publican de inmediato.';
     }
 
     $submit_html = '<div class="kh-editor__save-cluster">';
     $submit_html .= '<button type="submit" class="cd-save-btn kh-editor__save">' . cfd_icon('save') . ' Guardar cambios</button>';
-    if ($can_edit) {
-        $submit_html .= '<button type="submit" name="cfd_save_as" value="' . esc_attr($secondary_intent) . '" class="kh-editor__save kh-editor__save--secondary">' . cfd_icon($secondary_icon) . ' ' . esc_html($secondary_label) . '</button>';
-    }
     $submit_html .= '<span class="kh-editor__save-hint">' . esc_html($save_hint) . '</span>';
     $submit_html .= '</div>';
 

@@ -441,11 +441,102 @@
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════
 
+    // ═══════════════════════════════════════════════════════
+    // 4. ICON PICKER — Spanish, grandma-friendly button label
+    // ═══════════════════════════════════════════════════════
+    // The ACF Icon Picker add-on hardcodes the English "Browse Media
+    // Library". Swap it for plain Spanish. The label lives in its own
+    // <span>, so this is a clean textContent change (CSS handles styling).
+    function relabelIconPickers(container) {
+        var root = container || document;
+        var spans = root.querySelectorAll(
+            '.cd-acf-form .acf-icon-picker-media-library-button span'
+        );
+        spans.forEach(function (span) {
+            if (span.textContent.trim() === 'Browse Media Library') {
+                span.textContent = 'Elegir icono';
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 5. GALLERY — "smart" content-height (kill the dead whitespace)
+    // ═══════════════════════════════════════════════════════
+    // ACF gives .acf-gallery a fixed inline height (default 400px) and lays
+    // the thumbnails + toolbar out with absolute positioning. A few images in
+    // a tall box = a big empty void. We can't shrink it in CSS without
+    // collapsing the absolute children, so instead we set the SAME inline
+    // height ACF uses — measured from the actual thumbnails — so the box hugs
+    // its content and grows/shrinks as images are added or removed. Drag the
+    // ACF resize handle and we back off (the user owns the height from then on).
+    var GALLERY_MIN = 150;
+    var GALLERY_MAX = 640;
+
+    function fitGallery(gallery) {
+        if (gallery.getAttribute('data-cd-user-resized') === '1') return;
+        var attachments = gallery.querySelector('.acf-gallery-attachments');
+        var toolbar = gallery.querySelector('.acf-gallery-toolbar');
+        if (!attachments) return;
+
+        // Measure true content height from the thumbnails (scrollHeight is
+        // unreliable here — it never drops below the container's clientHeight).
+        var attTop = attachments.getBoundingClientRect().top;
+        var contentBottom = 0;
+        var items = attachments.children;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].nodeType !== 1) continue;
+            var b = items[i].getBoundingClientRect().bottom;
+            if (b > contentBottom) contentBottom = b;
+        }
+        var contentH = contentBottom > 0 ? (contentBottom - attTop) : 0;
+        var toolbarH = toolbar ? toolbar.offsetHeight : 0;
+        var h = Math.round(contentH) + toolbarH + 8; // small breathing buffer
+        h = Math.max(GALLERY_MIN, Math.min(h, GALLERY_MAX));
+        gallery.style.height = h + 'px';
+    }
+
+    function fitGalleries(container) {
+        var root = container || document;
+        var galleries = root.querySelectorAll('.cd-acf-form .acf-gallery');
+        galleries.forEach(function (g) {
+            fitGallery(g);
+            if (g.__cdGalleryWired) return;
+            g.__cdGalleryWired = true;
+
+            // Re-fit when images are added/removed.
+            var att = g.querySelector('.acf-gallery-attachments');
+            if (att && window.MutationObserver) {
+                var mo = new MutationObserver(function () {
+                    clearTimeout(g.__cdFitTimer);
+                    g.__cdFitTimer = setTimeout(function () { fitGallery(g); }, 60);
+                });
+                mo.observe(att, { childList: true });
+            }
+
+            // Once the user drags ACF's resize handle, stop auto-fitting.
+            var handle = g.querySelector('.ui-resizable-handle');
+            if (handle) {
+                handle.addEventListener('mousedown', function () {
+                    g.setAttribute('data-cd-user-resized', '1');
+                });
+            }
+        });
+    }
+
+    // Column count changes with viewport width → re-fit (debounced).
+    var galleryResizeTimer;
+    window.addEventListener('resize', function () {
+        clearTimeout(galleryResizeTimer);
+        galleryResizeTimer = setTimeout(function () { fitGalleries(); }, 150);
+    });
+
     function initAll(container) {
         if (!hasDashboardForm()) return;
         markDatePickerBody();
         initColorPickers(container);
         adjustSelect2(container);
+        relabelIconPickers(container);
+        fitGalleries(container);
     }
 
     // Run on DOMContentLoaded
@@ -472,6 +563,7 @@
                 var container = el.jquery ? el[0] : el;
                 initColorPickers(container);
                 adjustSelect2(container);
+                relabelIconPickers(container);
             });
             // When a new repeater row is added, re-init after a tick
             acf.addAction('new_field', function (field) {
